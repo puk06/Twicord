@@ -78,24 +78,6 @@ function getManagedChannelEntryByChannelId(guildState, channelId) {
     return null;
 }
 
-function splitMessageContent(content, maxLength = 2000) {
-    if (!content) return [];
-    if (content.length <= maxLength) return [content];
-
-    const chunks = [];
-    let rest = content;
-
-    while (rest.length > maxLength) {
-        const cutAt = rest.lastIndexOf("\n", maxLength);
-        const chunkSize = cutAt > 0 ? cutAt : maxLength;
-        chunks.push(rest.slice(0, chunkSize));
-        rest = rest.slice(chunkSize);
-    }
-
-    if (rest.length > 0) chunks.push(rest);
-    return chunks;
-}
-
 async function handleLanguageCommand(message, arg) {
     const guildId = message.guild.id;
     const userId = message.author.id;
@@ -752,31 +734,36 @@ async function publishReplyToPublicChannel(message) {
         return;
     }
 
-    const contentChunks = splitMessageContent(referenced.content ?? "");
-    const files = [...(referenced.attachments?.values() ?? [])].map((a) => ({
+    const files = [...(referenced.attachments?.values() ?? [])].slice(0, 10).map((a) => ({
         attachment: a.url,
         name: a.name || undefined
     }));
+
+    const omittedFileCount = Math.max(0, (referenced.attachments?.size || 0) - files.length);
 
     const forwardHeader = t(locale, "public_forward_header", {
         channel: `${message.channel}`,
         author: `${referenced.author}`,
         url: referenced.url
     });
-    await publicChannel.send({ content: forwardHeader });
-    await publicChannel.send({ content: t(locale, "public_content_start") });
 
-    if (!contentChunks.length && !files.length) {
-        await publicChannel.send({ content: t(locale, "public_no_text") });
-    } else {
-        for (const chunk of contentChunks) {
-            await publicChannel.send({ content: chunk });
-        }
+    let combinedContent = [
+        forwardHeader,
+        t(locale, "public_content_start"),
+        referenced.content && referenced.content.length > 0 ? referenced.content : t(locale, "public_no_text")
+    ].join("\n");
 
-        if (files.length) {
-            await publicChannel.send({ files });
-        }
+    if (omittedFileCount > 0) {
+        combinedContent += `\n${t(locale, "public_files_omitted", { count: omittedFileCount })}`;
     }
+
+    if (combinedContent.length > 2000) {
+        const suffix = `\n${t(locale, "public_truncated")}`;
+        const limit = Math.max(1, 2000 - suffix.length);
+        combinedContent = `${combinedContent.slice(0, limit)}${suffix}`;
+    }
+
+    await publicChannel.send({ content: combinedContent, files });
 
     await message.reply(t(locale, "public_sent", { channel: `${publicChannel}` }));
 }
