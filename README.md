@@ -8,8 +8,10 @@ Features
 - Create your private channel: `!twicord create`
 - Request to join another user's channel (approve/deny via reactions)
 - List created private channels: `!twicord list`
+- Publish a replied message from a managed channel to a server-wide public channel: `!twicord public`
 - Archive or delete channels
 - Server owner can set the default category: `!twicord set-category`
+- Server owner can set the public broadcast channel: `!twicord setpublicchannel`
 - Per-user language setting: `!twicord lang <ja|en>`
 
 Commands (prefix: `!twicord`)
@@ -19,6 +21,8 @@ Commands (prefix: `!twicord`)
 - `!twicord list` — Show all created private channels.
 - `!twicord set-category <CategoryId>` — (Owner) Set the default category used when creating channels.
 - `!twicord show-category` — Show current default category.
+- `!twicord setpublicchannel [#channel|ChannelId]` — (Owner) Set the channel used for public posts. If omitted, current channel is used.
+- `!twicord public` — Reply to a message inside a managed channel, then run this to forward it to the configured public channel.
 - `!twicord archive [@User|UserId]` — Archive your channel (owner may archive another user's channel).
 - `!twicord delete <#channel|ChannelId|@User|UserId>` — Delete a channel and its role.
 - `!twicord lang <ja|en>` — Set your display language (per-user).

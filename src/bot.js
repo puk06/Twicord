@@ -58,12 +58,47 @@ function buildHelpEmbed(locale) {
             { name: `${PREFIX} list`, value: t(locale, "help_list"), inline: false },
             { name: `${PREFIX} set-category <CategoryId> (Owner)`, value: t(locale, "help_set_category", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} show-category`, value: t(locale, "help_show_category"), inline: false },
+            { name: `${PREFIX} setpublicchannel [#channel|ChannelId] (Owner)`, value: t(locale, "help_set_public_channel", { prefix: PREFIX }), inline: false },
+            { name: `${PREFIX} public (reply)`, value: t(locale, "help_public", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} archive [@User|UserId]`, value: t(locale, "help_archive"), inline: false },
             { name: `${PREFIX} delete <#channel|ChannelId|@User|UserId>`, value: t(locale, "help_delete"), inline: false },
             { name: `${PREFIX} lang <ja|en>`, value: t(locale, "help_lang", { prefix: PREFIX }), inline: false }
         )
         .setFooter({ text: t(locale, "help_footer", { prefix: PREFIX }) })
         .setTimestamp();
+}
+
+function getManagedChannelEntryByChannelId(guildState, channelId) {
+    for (const entry of Object.values(guildState.channels || {})) {
+        if (entry?.channelId === channelId) return entry;
+    }
+    for (const entry of Object.values(guildState.archives || {})) {
+        if (entry?.channelId === channelId) return entry;
+    }
+    return null;
+}
+
+function buildPublicEmbed(locale, referencedMessage, sourceChannel, publisher) {
+    const trimmedContent = referencedMessage.content?.trim()
+        ? referencedMessage.content.trim().slice(0, 3900)
+        : t(locale, "public_no_text");
+
+    const attachmentUrls = referencedMessage.attachments?.size
+        ? [...referencedMessage.attachments.values()].map((a) => a.url).join("\n").slice(0, 1020)
+        : t(locale, "public_no_attachments");
+
+    return new EmbedBuilder()
+        .setTitle(t(locale, "public_embed_title"))
+        .setDescription(trimmedContent)
+        .addFields(
+            { name: t(locale, "public_embed_source_channel"), value: `${sourceChannel}`, inline: true },
+            { name: t(locale, "public_embed_published_by"), value: `${publisher}`, inline: true },
+            { name: t(locale, "public_embed_original_author"), value: `${referencedMessage.author} (${referencedMessage.author.id})`, inline: false },
+            { name: t(locale, "public_embed_attachments"), value: attachmentUrls, inline: false },
+            { name: t(locale, "public_embed_jump"), value: t(locale, "public_embed_jump_value", { url: referencedMessage.url }), inline: false }
+        )
+        .setColor(0x3498db)
+        .setTimestamp(referencedMessage.createdAt ?? new Date());
 }
 
 async function handleLanguageCommand(message, arg) {
@@ -182,6 +217,38 @@ function attachHandlers(client) {
             } else {
                 await message.reply(tUser(message.guild.id, message.author.id, "default_category_unset"));
             }
+            return;
+        }
+
+        // setpublicchannel (owner only)
+        if (["setpublicchannel", "set-public-channel", "setpublic", "set-public"].includes(sub)) {
+            if (!isOwner) {
+                await message.reply(tUser(message.guild.id, message.author.id, "not_owner_only"));
+                return;
+            }
+
+            const rawArg = parts.length >= 3 ? parts.slice(2).join(" ") : null;
+            const channelId = utils.parseChannelId(rawArg);
+            const targetChannel = channelId
+                ? message.guild.channels.cache.get(channelId) || await message.guild.channels.fetch(channelId).catch(() => null)
+                : message.channel;
+
+            if (!targetChannel || !targetChannel.isTextBased() || typeof targetChannel.send !== "function") {
+                await message.reply(tUser(message.guild.id, message.author.id, "usage_set_public_channel"));
+                return;
+            }
+
+            const guildState = getGuildState(message.guild.id);
+            guildState.publicChannelId = targetChannel.id;
+            await saveState();
+
+            await message.reply(tUser(message.guild.id, message.author.id, "public_channel_set", { channel: `${targetChannel}` }));
+            return;
+        }
+
+        // public (reply required)
+        if (["public", "publish", "share"].includes(sub)) {
+            await publishReplyToPublicChannel(message);
             return;
         }
 
@@ -644,6 +711,55 @@ async function handleRequestReaction(reaction, user) {
 
     await message.unpin().catch(() => null);
     await saveState();
+}
+
+async function publishReplyToPublicChannel(message) {
+    const guild = message.guild;
+    if (!guild) return;
+
+    const guildState = getGuildState(guild.id);
+    const locale = getUserLocale(guild.id, message.author.id);
+    const publicChannelId = guildState.publicChannelId;
+
+    if (!publicChannelId) {
+        await message.reply(t(locale, "no_public_channel", { prefix: PREFIX }));
+        return;
+    }
+
+    const sourceEntry = getManagedChannelEntryByChannelId(guildState, message.channel.id);
+    if (!sourceEntry) {
+        await message.reply(t(locale, "public_not_in_managed_channel"));
+        return;
+    }
+
+    const isOwner = message.author.id === guild.ownerId;
+    if (message.author.id !== sourceEntry.ownerId && !isOwner) {
+        await message.reply(t(locale, "no_public_permission"));
+        return;
+    }
+
+    if (!message.reference?.messageId) {
+        await message.reply(t(locale, "usage_public", { prefix: PREFIX }));
+        return;
+    }
+
+    const referenced = await message.fetchReference().catch(() => null);
+    if (!referenced || referenced.guild?.id !== guild.id) {
+        await message.reply(t(locale, "public_reply_not_found"));
+        return;
+    }
+
+    const publicChannel = guild.channels.cache.get(publicChannelId)
+        || await guild.channels.fetch(publicChannelId).catch(() => null);
+
+    if (!publicChannel || !publicChannel.isTextBased() || typeof publicChannel.send !== "function") {
+        await message.reply(t(locale, "public_channel_not_found"));
+        return;
+    }
+
+    const embed = buildPublicEmbed(locale, referenced, message.channel, message.author);
+    await publicChannel.send({ embeds: [embed] });
+    await message.reply(t(locale, "public_sent", { channel: `${publicChannel}` }));
 }
 
 module.exports = { attachHandlers };
