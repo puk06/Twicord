@@ -37,10 +37,10 @@ npm install
 DISCORD_BOT_TOKEN=your_bot_token_here
 ```
 
-5. ボットを起動します:
+4. ボットを起動します（開発: `npm start`）:
 
 ```
-node Twicord.js
+npm start
 ```
 
 ## 設定とデータ
@@ -50,7 +50,8 @@ node Twicord.js
 
 ## 開発者向け
 
-- メインソースファイル: [Twicord.js](Twicord.js)
+- エントリポイント: [src/index.js](src/index.js)
+- 主なモジュール: [src/bot.js](src/bot.js), [src/lib/state.js](src/lib/state.js), [src/lib/utils.js](src/lib/utils.js)
 - 依存: `discord.js`, `fs-extra`, `dotenv`
 
 ## コントリビュート
