@@ -78,27 +78,22 @@ function getManagedChannelEntryByChannelId(guildState, channelId) {
     return null;
 }
 
-function buildPublicEmbed(locale, referencedMessage, sourceChannel, publisher) {
-    const trimmedContent = referencedMessage.content?.trim()
-        ? referencedMessage.content.trim().slice(0, 3900)
-        : t(locale, "public_no_text");
+function splitMessageContent(content, maxLength = 2000) {
+    if (!content) return [];
+    if (content.length <= maxLength) return [content];
 
-    const attachmentUrls = referencedMessage.attachments?.size
-        ? [...referencedMessage.attachments.values()].map((a) => a.url).join("\n").slice(0, 1020)
-        : t(locale, "public_no_attachments");
+    const chunks = [];
+    let rest = content;
 
-    return new EmbedBuilder()
-        .setTitle(t(locale, "public_embed_title"))
-        .setDescription(trimmedContent)
-        .addFields(
-            { name: t(locale, "public_embed_source_channel"), value: `${sourceChannel}`, inline: true },
-            { name: t(locale, "public_embed_published_by"), value: `${publisher}`, inline: true },
-            { name: t(locale, "public_embed_original_author"), value: `${referencedMessage.author} (${referencedMessage.author.id})`, inline: false },
-            { name: t(locale, "public_embed_attachments"), value: attachmentUrls, inline: false },
-            { name: t(locale, "public_embed_jump"), value: t(locale, "public_embed_jump_value", { url: referencedMessage.url }), inline: false }
-        )
-        .setColor(0x3498db)
-        .setTimestamp(referencedMessage.createdAt ?? new Date());
+    while (rest.length > maxLength) {
+        const cutAt = rest.lastIndexOf("\n", maxLength);
+        const chunkSize = cutAt > 0 ? cutAt : maxLength;
+        chunks.push(rest.slice(0, chunkSize));
+        rest = rest.slice(chunkSize);
+    }
+
+    if (rest.length > 0) chunks.push(rest);
+    return chunks;
 }
 
 async function handleLanguageCommand(message, arg) {
@@ -757,8 +752,24 @@ async function publishReplyToPublicChannel(message) {
         return;
     }
 
-    const embed = buildPublicEmbed(locale, referenced, message.channel, message.author);
-    await publicChannel.send({ embeds: [embed] });
+    const contentChunks = splitMessageContent(referenced.content ?? "");
+    const files = [...(referenced.attachments?.values() ?? [])].map((a) => ({
+        attachment: a.url,
+        name: a.name || undefined
+    }));
+
+    if (!contentChunks.length && !files.length) {
+        await publicChannel.send({ content: t(locale, "public_no_text") });
+    } else {
+        for (const chunk of contentChunks) {
+            await publicChannel.send({ content: chunk });
+        }
+
+        if (files.length) {
+            await publicChannel.send({ files });
+        }
+    }
+
     await message.reply(t(locale, "public_sent", { channel: `${publicChannel}` }));
 }
 
