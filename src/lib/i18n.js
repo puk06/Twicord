@@ -1,0 +1,137 @@
+const SUPPORTED_LOCALES = ["ja", "en"];
+const DEFAULT_LOCALE = "ja";
+
+const MESSAGES = {
+    ja: {
+        request_embed_title: "チャンネル参加リクエスト",
+        request_embed_desc: "{requester} さんが入りたがっています。許可しますか？",
+        request_embed_target: "対象チャンネル",
+        request_embed_applicant: "申請者",
+        not_owner_only: "このコマンドはサーバーオーナー専用です。",
+        usage_request: "使い方: {prefix} request <@User|UserId>",
+        usage_set_category: "使い方: {prefix} set-category <CategoryId> (例: <#123456789012345678>)",
+        usage_lang: "使い方: {prefix} lang <ja|en>",
+        lang_current: "現在の言語設定: `{locale}`\n変更するには: {usage}",
+        lang_updated: "言語設定を `{locale}` に変更しました。",
+        invalid_lang: "対応している言語は `ja` と `en` です。",
+        no_default_category: "デフォルトカテゴリが設定されていません。サーバーオーナーは `{prefix} set-category <CategoryId>` で設定してください。",
+        category_not_found_owner_fix: "指定されたカテゴリが見つかりませんでした。サーバーオーナーは正しいカテゴリIDを設定してください。",
+        already_created: "すでに作成済みです: {channel}",
+        existing_info_missing_entity: "すでにチャンネル情報はありますが、実体が見つかりませんでした。管理者に確認してください。",
+        created_channel: "チャンネルを作成しました: {channel}",
+        target_channel_not_found: "そのユーザーのチャンネルは見つかりませんでした。",
+        cannot_request_own: "自分のチャンネルには申請できません。",
+        target_channel_not_found_admin: "対象チャンネルが見つかりませんでした。管理者に確認してください。",
+        already_requested: "すでに申請済みです。返信を待ってください。",
+        request_sent: "申請を送信しました: {channel}",
+        no_private_channels: "作成されているプライベートチャンネルはありません。",
+        created_list_title: "作成済みチャンネル一覧",
+        owner_label: "オーナー: {owner}",
+        channel_id_label: "チャンネルID: {channelId}",
+        no_archive_permission: "そのチャンネルをアーカイブする権限がありません。オーナーかサーバー所有者のみ実行できます。",
+        archived_channel: "チャンネルをアーカイブしました: {channel}",
+        no_delete_permission: "そのチャンネルを削除する権限がありません。オーナーかサーバー所有者のみ実行できます。",
+        deleted_channel_role_state: "チャンネルと関連ロールを削除しました。状態も消去しました。",
+        deleted_untracked_channel: "指定されたチャンネルを削除しました（記録はありませんでした）。",
+        no_channel_tracking_found: "指定されたチャンネルIDに紐づく管理情報が見つかりませんでした。",
+        deleted_channel_role_by_id: "チャンネルと関連ロールを削除しました（チャンネルID指定）。",
+        role_not_found: "対象ロールが見つかりませんでした。管理者に確認してください。",
+        requester_not_in_guild: "申請者がサーバー内にいません。",
+        request_approved: "{user} の参加を許可しました。",
+        request_denied: "{user} の参加を拒否しました。",
+        help_title: "Twicord — コマンドヘルプ",
+        help_desc: "主要コマンドの使い方と例です。サーバーオーナー向けコマンドは権限が必要です。",
+        help_create: "自分専用のプライベートチャンネルを作成します。例: `{prefix} create`",
+        help_request: "指定ユーザーのチャンネルへ参加申請を送信します。例: `{prefix} request @Alice`",
+        help_list: "作成済みプライベートチャンネルの一覧を表示します。",
+        help_set_category: "サーバーオーナーのみ。デフォルト作成カテゴリを設定します。例: `{prefix} set-category <#123...>`",
+        help_show_category: "現在設定されているデフォルトカテゴリを表示します。",
+        help_archive: "自分のチャンネルをアーカイブします（オーナーは他ユーザーを指定可）。アーカイブ後は書き込み不可になります。",
+        help_delete: "自分のチャンネルを削除します。サーバーオーナーは他ユーザーやチャンネルID指定で削除可能。",
+        help_lang: "自分の表示言語を設定します。例: `{prefix} lang en`",
+        help_footer: "コマンドプレフィックス: {prefix}",
+        default_category_set: "デフォルトカテゴリを設定しました: {category}",
+        default_category_now: "現在のデフォルトカテゴリ: {category}",
+        default_category_not_found: "現在のデフォルトカテゴリ: {categoryId} (見つかりませんでした)",
+        default_category_unset: "現在のデフォルトカテゴリ: 未設定 (見つかりませんでした)"
+    },
+    en: {
+        request_embed_title: "Channel Join Request",
+        request_embed_desc: "{requester} wants to join. Approve this request?",
+        request_embed_target: "Target Channel",
+        request_embed_applicant: "Requester",
+        not_owner_only: "This command is only available to the server owner.",
+        usage_request: "Usage: {prefix} request <@User|UserId>",
+        usage_set_category: "Usage: {prefix} set-category <CategoryId> (example: <#123456789012345678>)",
+        usage_lang: "Usage: {prefix} lang <ja|en>",
+        lang_current: "Current language: `{locale}`\nTo change it: {usage}",
+        lang_updated: "Language updated to `{locale}`.",
+        invalid_lang: "Supported languages are `ja` and `en`.",
+        no_default_category: "Default category is not set. The server owner can set it with `{prefix} set-category <CategoryId>`.",
+        category_not_found_owner_fix: "The specified category was not found. Please set a valid category ID.",
+        already_created: "Already created: {channel}",
+        existing_info_missing_entity: "A channel record exists, but the actual channel could not be found. Please contact an admin.",
+        created_channel: "Created channel: {channel}",
+        target_channel_not_found: "The target user's channel was not found.",
+        cannot_request_own: "You cannot request to join your own channel.",
+        target_channel_not_found_admin: "Target channel was not found. Please contact an admin.",
+        already_requested: "You have already requested to join. Please wait for a response.",
+        request_sent: "Request sent: {channel}",
+        no_private_channels: "No private channels have been created yet.",
+        created_list_title: "Created Private Channels",
+        owner_label: "Owner: {owner}",
+        channel_id_label: "Channel ID: {channelId}",
+        no_archive_permission: "You do not have permission to archive this channel. Only the owner or server owner can do this.",
+        archived_channel: "Channel archived: {channel}",
+        no_delete_permission: "You do not have permission to delete this channel. Only the owner or server owner can do this.",
+        deleted_channel_role_state: "Deleted the channel and related role. Stored state was removed too.",
+        deleted_untracked_channel: "Deleted the specified channel (it was not tracked in state).",
+        no_channel_tracking_found: "No managed channel record was found for that channel ID.",
+        deleted_channel_role_by_id: "Deleted the channel and related role (by channel ID).",
+        role_not_found: "Target role was not found. Please contact an admin.",
+        requester_not_in_guild: "The requester is no longer in this server.",
+        request_approved: "Approved {user}'s request.",
+        request_denied: "Denied {user}'s request.",
+        help_title: "Twicord — Command Help",
+        help_desc: "Usage and examples for main commands. Server-owner commands require owner privileges.",
+        help_create: "Create your private channel. Example: `{prefix} create`",
+        help_request: "Send a join request to another user's channel. Example: `{prefix} request @Alice`",
+        help_list: "Show all created private channels.",
+        help_set_category: "Server owner only. Set the default category. Example: `{prefix} set-category <#123...>`",
+        help_show_category: "Show the currently configured default category.",
+        help_archive: "Archive your channel (owner can specify another user). Sending messages will be disabled after archive.",
+        help_delete: "Delete your channel. Server owner can also delete by user or channel ID.",
+        help_lang: "Set your preferred language. Example: `{prefix} lang en`",
+        help_footer: "Command prefix: {prefix}",
+        default_category_set: "Default category set: {category}",
+        default_category_now: "Current default category: {category}",
+        default_category_not_found: "Current default category: {categoryId} (not found)",
+        default_category_unset: "Current default category: not set (not found)"
+    }
+};
+
+function interpolate(template, vars = {}) {
+    return String(template).replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key) => {
+        return vars[key] == null ? `{${key}}` : String(vars[key]);
+    });
+}
+
+function normalizeLocale(value) {
+    if (!value) return DEFAULT_LOCALE;
+    const locale = String(value).toLowerCase();
+    return SUPPORTED_LOCALES.includes(locale) ? locale : null;
+}
+
+function t(locale, key, vars) {
+    const chosen = normalizeLocale(locale) || DEFAULT_LOCALE;
+    const table = MESSAGES[chosen] || MESSAGES[DEFAULT_LOCALE];
+    const fallback = MESSAGES[DEFAULT_LOCALE][key] ?? key;
+    return interpolate(table[key] ?? fallback, vars);
+}
+
+module.exports = {
+    SUPPORTED_LOCALES,
+    DEFAULT_LOCALE,
+    normalizeLocale,
+    t
+};

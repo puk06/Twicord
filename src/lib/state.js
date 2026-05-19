@@ -26,11 +26,12 @@ async function saveState() {
 
 function getGuildState(guildId) {
     if (!state.guilds[guildId]) {
-        state.guilds[guildId] = { channels: {}, archives: {} };
+        state.guilds[guildId] = { channels: {}, archives: {}, userLocales: {} };
     }
 
     if (!state.guilds[guildId].channels) state.guilds[guildId].channels = {};
     if (!state.guilds[guildId].archives) state.guilds[guildId].archives = {};
+    if (!state.guilds[guildId].userLocales) state.guilds[guildId].userLocales = {};
 
     return state.guilds[guildId];
 }

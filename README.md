@@ -10,6 +10,7 @@
 - 作成済みチャンネル一覧表示（`!twicord list`）
 - チャンネルのアーカイブ（書き込み禁止）と削除
 - サーバーオーナー向けにデフォルトカテゴリを設定（`!twicord set-category`）
+- ユーザーごとの言語設定（日本語/英語、`!twicord lang <ja|en>`）
 
 ## 対応コマンド（プレフィックス: `!twicord`）
 
@@ -20,6 +21,7 @@
 - `!twicord show-category` — 現在のデフォルトカテゴリを表示します。
 - `!twicord archive [@User|UserId]` — 自分（またはオーナーによる指定）のチャンネルをアーカイブします。
 - `!twicord delete <#channel|ChannelId|@User|UserId>` — チャンネルと関連ロールを削除します。
+- `!twicord lang <ja|en>` — 自分の表示言語を設定します。
 
 ## インストールと実行
 
