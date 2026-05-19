@@ -4,7 +4,9 @@
   "description": "A simple Discord bot for managing private channels",
   "main": "src/index.js",
   "scripts": {
-    "start": "node ./src/index.js"
+    "start": "node ./src/index.js",
+    "pm2": "pm2 start ./src/index.js --name Twicord",
+    "pm2-dev": "pm2 start ./src/index.js --name Twicord --watch"
   },
   "keywords": [],
   "author": "Pukorufu",
