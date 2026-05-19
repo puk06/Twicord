@@ -758,6 +758,13 @@ async function publishReplyToPublicChannel(message) {
         name: a.name || undefined
     }));
 
+    const forwardHeader = t(locale, "public_forward_header", {
+        channel: `${message.channel}`,
+        author: `${referenced.author}`,
+        url: referenced.url
+    });
+    await publicChannel.send({ content: forwardHeader });
+
     if (!contentChunks.length && !files.length) {
         await publicChannel.send({ content: t(locale, "public_no_text") });
     } else {
