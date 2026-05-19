@@ -764,6 +764,7 @@ async function publishReplyToPublicChannel(message) {
         url: referenced.url
     });
     await publicChannel.send({ content: forwardHeader });
+    await publicChannel.send({ content: t(locale, "public_content_start") });
 
     if (!contentChunks.length && !files.length) {
         await publicChannel.send({ content: t(locale, "public_no_text") });
