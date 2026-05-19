@@ -1,67 +1,66 @@
- # Twicord
+# Twicord
 
-> シンプルな Discord プライベートチャンネル管理ボット（Node.js / discord.js）
+Simple Discord private-channel management bot (Node.js / discord.js)
 
-このリポジトリは、サーバー内でユーザーごとに専用テキストチャンネルを作成・管理できる Discord ボット `Twicord` の実装です。主な機能はユーザー専用チャンネルの作成、参加申請の管理、アーカイブと削除、デフォルトカテゴリの設定などです。
+Twicord allows server members to create and manage per-user private text channels. Key features include channel creation, join request workflow, archiving, deletion, and a server-owner configurable default category.
 
-**主な機能**
-- 自分専用のプライベートチャンネルを作成（`!twicord create`）
-- 他ユーザーのチャンネルへ参加申請を送信・承認・却下（リアクションで操作）
-- 作成済みチャンネル一覧表示（`!twicord list`）
-- チャンネルのアーカイブ（書き込み禁止）と削除
-- サーバーオーナー向けにデフォルトカテゴリを設定（`!twicord set-category`）
-- ユーザーごとの言語設定（日本語/英語、`!twicord lang <ja|en>`）
+Features
+- Create your private channel: `!twicord create`
+- Request to join another user's channel (approve/deny via reactions)
+- List created private channels: `!twicord list`
+- Archive or delete channels
+- Server owner can set the default category: `!twicord set-category`
+- Per-user language setting: `!twicord lang <ja|en>`
 
-## 対応コマンド（プレフィックス: `!twicord`）
+Commands (prefix: `!twicord`)
 
-- `!twicord create` — 自分専用チャンネルを作成します。
-- `!twicord request <@User|UserId>` — 指定ユーザーのチャンネルに参加申請を送信します。
-- `!twicord list` — 作成済みのプライベートチャンネル一覧を表示します。
-- `!twicord set-category <CategoryId>` — サーバーオーナーのみ。デフォルトカテゴリを設定します。
-- `!twicord show-category` — 現在のデフォルトカテゴリを表示します。
-- `!twicord archive [@User|UserId]` — 自分（またはオーナーによる指定）のチャンネルをアーカイブします。
-- `!twicord delete <#channel|ChannelId|@User|UserId>` — チャンネルと関連ロールを削除します。
-- `!twicord lang <ja|en>` — 自分の表示言語を設定します。
+- `!twicord create` — Create your private channel.
+- `!twicord request <@User|UserId>` — Send a join request to the specified user's channel.
+- `!twicord list` — Show all created private channels.
+- `!twicord set-category <CategoryId>` — (Owner) Set the default category used when creating channels.
+- `!twicord show-category` — Show current default category.
+- `!twicord archive [@User|UserId]` — Archive your channel (owner may archive another user's channel).
+- `!twicord delete <#channel|ChannelId|@User|UserId>` — Delete a channel and its role.
+- `!twicord lang <ja|en>` — Set your display language (per-user).
 
-## インストールと実行
+Installation & Run
 
-1. Node.js をインストールします（推奨: Node 16+）。
-2. このリポジトリをクローンします。
-3. 依存をインストールします:
+1. Install Node.js (recommended: Node 16+).
+2. Clone the repository.
+3. Install dependencies:
 
 ```
 npm install
 ```
 
-4. ルートに `.env` を作成し、Bot トークンを設定します:
+4. Create a `.env` file in the project root with your bot token:
 
 ```
 DISCORD_BOT_TOKEN=your_bot_token_here
 ```
 
-4. ボットを起動します（開発: `npm start`）:
+5. Start the bot:
 
 ```
 npm start
 ```
 
-## 設定とデータ
+Data and persistence
 
-- デフォルトカテゴリはサーバーオーナーが `!twicord set-category <CategoryId>` で設定します。
-- 永続データはワークスペース内の `.data/channels.json` に保存されます。
+- Persistent state (channels, archives, per-user locales) is stored in `.data/channels.json` in the repository root.
 
-## 開発者向け
+Developer notes
 
-- エントリポイント: [src/index.js](src/index.js)
-- 主なモジュール: [src/bot.js](src/bot.js), [src/lib/state.js](src/lib/state.js), [src/lib/utils.js](src/lib/utils.js)
-- 依存: `discord.js`, `fs-extra`, `dotenv`
+- Entry point: `src/index.js`
+- Main modules: `src/bot.js`, `src/lib/state.js`, `src/lib/utils.js`, `src/lib/i18n.js`
+- Dependencies: `discord.js`, `fs-extra`, `dotenv`
 
-## コントリビュート
+Internationalization
 
-貢献方法については [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+- Supports Japanese (`ja`) and English (`en`).
+- Users can set their preferred language with `!twicord lang <ja|en>`; messages and embeds will be localized where supported.
+ - Default language is English (`en`).
 
-## ライセンス
+License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
-Copyright (c) 2025 Pukorufu
+This project is licensed under the MIT License — see the `LICENSE` file for details.
