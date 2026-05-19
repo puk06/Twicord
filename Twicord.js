@@ -710,5 +710,5 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
 	await handleRequestReaction(reaction, user).catch(() => null);
 });
 
-const token = process.env.TOKEN;
+const token = process.env.DISCORD_BOT_TOKEN;
 client.login(token);
