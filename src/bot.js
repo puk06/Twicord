@@ -85,9 +85,11 @@ async function warnPermissionAbuse(message) {
     const entry = getManagedChannelEntryByChannelId(guildState, message.channel.id);
     if (!entry) return;
 
-    // Ignore owner or server owner
+    // Ignore owner
     if (message.author.id === entry.ownerId) return;
-    if (message.author.id === guild.ownerId) return;
+
+    // Ignore server owner
+    // if (message.author.id === guild.ownerId) return;
 
     const member = await guild.members.fetch(message.author.id).catch(() => null);
     if (!member) return;
