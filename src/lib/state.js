@@ -1,5 +1,6 @@
 const fs = require("fs-extra");
 const path = require("node:path");
+const logger = require("./logger");
 
 const DATA_FOLDER = path.join(__dirname, "..", "..", ".data");
 const DATA_FILE = path.join(DATA_FOLDER, "channels.json");
@@ -13,7 +14,7 @@ async function loadState() {
         return;
     }
 
-    const loaded = await fs.readJson(DATA_FILE).catch(() => null);
+    const loaded = await fs.readJson(DATA_FILE).catch((e) => { logger.error('loadState: readJson', e); return null; });
     if (loaded && typeof loaded === "object") {
         state.guilds = loaded.guilds ?? {};
     }

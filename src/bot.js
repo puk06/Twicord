@@ -2,6 +2,7 @@ const { EmbedBuilder, Events, ActivityType, ChannelType, PermissionsBitField } =
 const { state, loadState, saveState, getGuildState } = require("./lib/state");
 const { t, normalizeLocale, DEFAULT_LOCALE } = require("./lib/i18n");
 const utils = require("./lib/utils");
+const logger = require("./lib/logger");
 
 const PREFIX = "!twicord";
 const APPROVE_EMOJI = "✅";
@@ -92,7 +93,7 @@ async function warnPermissionAbuse(message) {
     // Ignore server owner
     // if (message.author.id === guild.ownerId) return;
 
-    const member = await guild.members.fetch(message.author.id).catch(() => null);
+    const member = await guild.members.fetch(message.author.id).catch((e) => { logger.error('warnPermissionAbuse: fetch member', e); return null; });
     if (!member) return;
 
     // If member has the channel role, it's allowed
@@ -106,7 +107,7 @@ async function warnPermissionAbuse(message) {
     // i18n: reply in the author's preferred locale
     const locale = getUserLocale(guild.id, message.author.id);
     const warning = t(locale, "warn_permission_abuse", { prefix: PREFIX });
-    await message.reply({ content: warning }).catch(() => null);
+    await message.reply({ content: warning }).catch((e) => logger.error('warnPermissionAbuse: reply', e));
 }
 
 async function handleLanguageCommand(message, arg) {
@@ -138,14 +139,14 @@ function attachHandlers(client) {
         await loadState();
         console.log(`Logged in as ${client.user.tag}`);
         await updateActivity(client);
-        setInterval(() => updateActivity(client).catch(() => null), 60 * 1000);
+        setInterval(() => updateActivity(client).catch((e) => logger.error('updateActivity interval', e)), 60 * 1000);
     });
 
     client.on(Events.MessageCreate, async (message) => {
         if (!message.guild || message.author.bot) return;
 
         // Warn on permission abuse when someone posts in a managed channel
-        await warnPermissionAbuse(message).catch(() => null);
+        await warnPermissionAbuse(message).catch((e) => logger.error('warnPermissionAbuse', e));
 
         if (!message.content.startsWith(PREFIX)) return;
 
@@ -203,15 +204,15 @@ function attachHandlers(client) {
             }
 
             const newName = utils.normalizeChannelName(raw);
-            const channel = await guild.channels.fetch(entry.channelId).catch(() => null);
+            const channel = await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('rename: fetch channel', e); return null; });
             if (!channel) {
                 await message.reply(tUser(guild.id, message.author.id, "target_channel_not_found_admin"));
                 return;
             }
 
             try {
-                await channel.setName(newName).catch(() => null);
-            } catch (e) { /* ignore */ }
+                await channel.setName(newName).catch((e) => { logger.error('rename: setName', e); });
+            } catch (e) { logger.error('rename: setName exception', e); }
 
             await message.reply(tUser(guild.id, message.author.id, "rename_success", { channel: `${channel}` }));
             return;
@@ -236,7 +237,7 @@ function attachHandlers(client) {
                 return;
             }
 
-            const category = message.guild.channels.cache.get(categoryId) || await message.guild.channels.fetch(categoryId).catch(() => null);
+            const category = message.guild.channels.cache.get(categoryId) || await message.guild.channels.fetch(categoryId).catch((e) => { logger.error('set-category: fetch category', e); return null; });
             if (!category || category.type !== ChannelType.GuildCategory) {
                 await message.reply(tUser(message.guild.id, message.author.id, "category_not_found_owner_fix"));
                 return;
@@ -259,7 +260,7 @@ function attachHandlers(client) {
                 if (fallback) categoryId = fallback.id;
             }
             const category = categoryId
-                ? message.guild.channels.cache.get(categoryId) || await message.guild.channels.fetch(categoryId).catch(() => null)
+                ? message.guild.channels.cache.get(categoryId) || await message.guild.channels.fetch(categoryId).catch((e) => { logger.error('show-category: fetch category', e); return null; })
                 : null;
 
             if (category) {
@@ -281,8 +282,8 @@ function attachHandlers(client) {
 
             const rawArg = parts.length >= 3 ? parts.slice(2).join(" ") : null;
             const channelId = utils.parseChannelId(rawArg);
-            const targetChannel = channelId
-                ? message.guild.channels.cache.get(channelId) || await message.guild.channels.fetch(channelId).catch(() => null)
+                const targetChannel = channelId
+                ? message.guild.channels.cache.get(channelId) || await message.guild.channels.fetch(channelId).catch((e) => { logger.error('setpublicchannel: fetch channel', e); return null; })
                 : message.channel;
 
             if (!targetChannel || !targetChannel.isTextBased() || typeof targetChannel.send !== "function") {
@@ -344,7 +345,7 @@ function attachHandlers(client) {
     });
 
     client.on(Events.MessageReactionAdd, async (reaction, user) => {
-        await handleRequestReaction(reaction, user).catch(() => null);
+        await handleRequestReaction(reaction, user).catch((e) => logger.error('handleRequestReaction', e));
     });
 }
 
@@ -359,7 +360,7 @@ async function createPrivateChannel(client, message) {
         return;
     }
 
-    const category = guild.channels.cache.get(categoryId) || await guild.channels.fetch(categoryId).catch(() => null);
+    const category = guild.channels.cache.get(categoryId) || await guild.channels.fetch(categoryId).catch((e) => { logger.error('createPrivateChannel: fetch category', e); return null; });
     if (!category || category.type !== ChannelType.GuildCategory) {
         await message.reply(tUser(guild.id, message.author.id, "category_not_found_owner_fix"));
         return;
@@ -431,7 +432,7 @@ async function createPrivateChannel(client, message) {
         ]
     });
 
-    await member.roles.add(role.id).catch(() => null);
+    await member.roles.add(role.id).catch((e) => logger.error('createPrivateChannel: add role', e));
 
     guildState.channels[message.author.id] = {
         guildId: guild.id,
@@ -463,7 +464,7 @@ async function requestToJoin(message, targetUserId) {
         return;
     }
 
-    const channel = await guild.channels.fetch(target.channelId).catch(() => null);
+    const channel = await guild.channels.fetch(target.channelId).catch((e) => { logger.error('requestToJoin: fetch channel', e); return null; });
     if (!channel || channel.type !== ChannelType.GuildText) {
         await message.reply(tUser(guild.id, message.author.id, "target_channel_not_found_admin"));
         return;
@@ -478,9 +479,9 @@ async function requestToJoin(message, targetUserId) {
     const requester = await guild.members.fetch(message.author.id);
     const ownerLocale = getUserLocale(guild.id, targetUserId);
     const requestMessage = await channel.send({ embeds: [buildRequestEmbed(ownerLocale, requester.user, channel)] });
-    await requestMessage.pin().catch(() => null);
-    await requestMessage.react(APPROVE_EMOJI).catch(() => null);
-    await requestMessage.react(REJECT_EMOJI).catch(() => null);
+    await requestMessage.pin().catch((e) => logger.error('requestToJoin: pin', e));
+    await requestMessage.react(APPROVE_EMOJI).catch((e) => logger.error('requestToJoin: react approve', e));
+    await requestMessage.react(REJECT_EMOJI).catch((e) => logger.error('requestToJoin: react reject', e));
 
     target.requests[requestMessage.id] = {
         requesterId: message.author.id,
@@ -510,7 +511,7 @@ async function listPrivateChannels(message) {
         .setTimestamp();
 
     for (const entry of entries) {
-        const channel = guild.channels.cache.get(entry.channelId) || await guild.channels.fetch(entry.channelId).catch(() => null);
+        const channel = guild.channels.cache.get(entry.channelId) || await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('listPrivateChannels: fetch channel', e); return null; });
         const channelLabel = channel ? `${channel}` : t(locale, "channel_id_label", { channelId: entry.channelId });
         const ownerMention = `<@${entry.ownerId}>`;
         embed.addFields({ name: channelLabel, value: t(locale, "owner_label", { owner: ownerMention }), inline: false });
@@ -538,8 +539,8 @@ async function archivePrivateChannel(message, targetUserId) {
         return;
     }
 
-    const channel = await guild.channels.fetch(entry.channelId).catch(() => null);
-    const role = await guild.roles.fetch(entry.roleId).catch(() => null);
+    const channel = await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('archivePrivateChannel: fetch channel', e); return null; });
+    const role = await guild.roles.fetch(entry.roleId).catch((e) => { logger.error('archivePrivateChannel: fetch role', e); return null; });
 
     if (!channel) {
         await message.reply(tUser(guild.id, message.author.id, "target_channel_not_found_admin"));
@@ -552,13 +553,13 @@ async function archivePrivateChannel(message, targetUserId) {
 
     if (role) {
         try {
-            await channel.permissionOverwrites.edit(role.id, { SendMessages: false, ViewChannel: true }).catch(() => null);
-        } catch (e) { /* ignore */ }
+            await channel.permissionOverwrites.edit(role.id, { SendMessages: false, ViewChannel: true }).catch((e) => logger.error('archivePrivateChannel: edit overwrite role', e));
+        } catch (e) { logger.error('archivePrivateChannel: edit overwrite role exception', e); }
     }
 
     try {
-        await channel.permissionOverwrites.edit(entry.ownerId, { SendMessages: false, AttachFiles: false, AddReactions: false }).catch(() => null);
-    } catch (e) { /* ignore */ }
+        await channel.permissionOverwrites.edit(entry.ownerId, { SendMessages: false, AttachFiles: false, AddReactions: false }).catch((e) => logger.error('archivePrivateChannel: edit overwrite owner', e));
+    } catch (e) { logger.error('archivePrivateChannel: edit overwrite owner exception', e); }
 
     guildState.archives[ownerId] = Object.assign({}, entry, { archivedAt: Date.now() });
     delete guildState.channels[ownerId];
@@ -588,20 +589,20 @@ async function deletePrivateChannel(message, targetUserId) {
     }
 
     if (entry.channelId) {
-        const channel = await guild.channels.fetch(entry.channelId).catch(() => null);
+        const channel = await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('deletePrivateChannel: fetch channel', e); return null; });
         if (channel) {
             try {
-                await channel.delete().catch(() => null);
-            } catch (e) { /* ignore */ }
+                await channel.delete().catch((e) => logger.error('deletePrivateChannel: delete channel', e));
+            } catch (e) { logger.error('deletePrivateChannel: delete channel exception', e); }
         }
     }
 
     if (entry.roleId) {
-        const role = await guild.roles.fetch(entry.roleId).catch(() => null);
+        const role = await guild.roles.fetch(entry.roleId).catch((e) => { logger.error('deletePrivateChannel: fetch role', e); return null; });
         if (role) {
             try {
-                await role.delete().catch(() => null);
-            } catch (e) { /* ignore */ }
+                await role.delete().catch((e) => logger.error('deletePrivateChannel: delete role', e));
+            } catch (e) { logger.error('deletePrivateChannel: delete role exception', e); }
         }
     }
 
@@ -642,11 +643,11 @@ async function deleteByChannelId(message, channelId) {
 
     if (!entry) {
         if (message.author.id === message.guild.ownerId) {
-            const raw = await guild.channels.fetch(channelId).catch(() => null);
+            const raw = await guild.channels.fetch(channelId).catch((e) => { logger.error('deleteByChannelId: fetch raw channel', e); return null; });
             if (raw) {
                 try {
-                    await raw.delete().catch(() => null);
-                } catch (e) { /* ignore */ }
+                    await raw.delete().catch((e) => logger.error('deleteByChannelId: delete raw channel', e));
+                } catch (e) { logger.error('deleteByChannelId: delete raw channel exception', e); }
                 await updateActivity(message.client);
                 await message.reply(tUser(guild.id, message.author.id, "deleted_untracked_channel"));
                 return;
@@ -664,20 +665,20 @@ async function deleteByChannelId(message, channelId) {
     }
 
     if (entry.channelId) {
-        const channel = await guild.channels.fetch(entry.channelId).catch(() => null);
+        const channel = await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('deleteByChannelId: fetch channel', e); return null; });
         if (channel) {
             try {
-                await channel.delete().catch(() => null);
-            } catch (e) { /* ignore */ }
+                await channel.delete().catch((e) => logger.error('deleteByChannelId: delete channel', e));
+            } catch (e) { logger.error('deleteByChannelId: delete channel exception', e); }
         }
     }
 
-    if (entry.roleId) {
-        const role = await guild.roles.fetch(entry.roleId).catch(() => null);
+        if (entry.roleId) {
+        const role = await guild.roles.fetch(entry.roleId).catch((e) => { logger.error('deleteByChannelId: fetch role', e); return null; });
         if (role) {
             try {
-                await role.delete().catch(() => null);
-            } catch (e) { /* ignore */ }
+                await role.delete().catch((e) => logger.error('deleteByChannelId: delete role', e));
+            } catch (e) { logger.error('deleteByChannelId: delete role exception', e); }
         }
     }
 
@@ -691,7 +692,7 @@ async function deleteByChannelId(message, channelId) {
 async function handleRequestReaction(reaction, user) {
     if (user.bot) return;
 
-    const message = reaction.message.partial ? await reaction.message.fetch().catch(() => null) : reaction.message;
+    const message = reaction.message.partial ? await reaction.message.fetch().catch((e) => { logger.error('handleRequestReaction: fetch message', e); return null; }) : reaction.message;
     if (!message || !message.guild) return;
 
     const guildState = state.guilds[message.guild.id];
@@ -708,7 +709,7 @@ async function handleRequestReaction(reaction, user) {
     if (user.id !== ownerEntry.ownerId) return;
 
     const locale = getUserLocale(message.guild.id, user.id);
-    const requesterMember = await message.guild.members.fetch(request.requesterId).catch(() => null);
+    const requesterMember = await message.guild.members.fetch(request.requesterId).catch((e) => { logger.error('handleRequestReaction: fetch requester member', e); return null; });
     if (!requesterMember) {
         request.status = "expired";
         await saveState();
@@ -721,19 +722,19 @@ async function handleRequestReaction(reaction, user) {
                         .setDescription(t(locale, "requester_not_in_guild"))
                 ]
             })
-            .catch(() => null);
-        await message.unpin().catch(() => null);
+            .catch((e) => logger.error('handleRequestReaction: edit expired message', e));
+        await message.unpin().catch((e) => logger.error('handleRequestReaction: unpin expired message', e));
         return;
     }
 
-    const role = await message.guild.roles.fetch(ownerEntry.roleId).catch(() => null);
+    const role = await message.guild.roles.fetch(ownerEntry.roleId).catch((e) => { logger.error('handleRequestReaction: fetch role', e); return null; });
     if (!role) {
-        await message.channel.send(t(locale, "role_not_found")).catch(() => null);
+        await message.channel.send(t(locale, "role_not_found")).catch((e) => logger.error('handleRequestReaction: send role_not_found', e));
         return;
     }
 
     if (emoji === APPROVE_EMOJI) {
-        await requesterMember.roles.add(role.id).catch(() => null);
+        await requesterMember.roles.add(role.id).catch((e) => logger.error('handleRequestReaction: add role to requester', e));
         request.status = "approved";
         await message
             .edit({
@@ -745,7 +746,7 @@ async function handleRequestReaction(reaction, user) {
                         .setTimestamp()
                 ]
             })
-            .catch(() => null);
+            .catch((e) => logger.error('handleRequestReaction: edit approved message', e));
     } else {
         request.status = "denied";
         await message
@@ -758,10 +759,10 @@ async function handleRequestReaction(reaction, user) {
                         .setTimestamp()
                 ]
             })
-            .catch(() => null);
+            .catch((e) => logger.error('handleRequestReaction: edit denied message', e));
     }
 
-    await message.unpin().catch(() => null);
+    await message.unpin().catch((e) => logger.error('handleRequestReaction: unpin final', e));
     await saveState();
 }
 
@@ -795,14 +796,14 @@ async function publishReplyToPublicChannel(message) {
         return;
     }
 
-    const referenced = await message.fetchReference().catch(() => null);
+    const referenced = await message.fetchReference().catch((e) => { logger.error('publishReplyToPublicChannel: fetchReference', e); return null; });
     if (!referenced || referenced.guild?.id !== guild.id) {
         await message.reply(t(locale, "public_reply_not_found"));
         return;
     }
 
     const publicChannel = guild.channels.cache.get(publicChannelId)
-        || await guild.channels.fetch(publicChannelId).catch(() => null);
+        || await guild.channels.fetch(publicChannelId).catch((e) => { logger.error('publishReplyToPublicChannel: fetch public channel', e); return null; });
 
     if (!publicChannel || !publicChannel.isTextBased() || typeof publicChannel.send !== "function") {
         await message.reply(t(locale, "public_channel_not_found"));

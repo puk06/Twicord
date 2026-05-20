@@ -14,8 +14,9 @@ function safeRenameChannel(channel, suffix) {
     const base = String(channel.name || "").replace(/-archived(-\d+)?$/i, "");
     const trimmed = base.slice(0, Math.max(0, max - suffix.length));
     try {
-        return channel.setName(`${trimmed}${suffix}`).catch(() => null);
+        return channel.setName(`${trimmed}${suffix}`).catch((e) => { require("./logger").error('safeRenameChannel: setName', e); return null; });
     } catch (e) {
+        require("./logger").error('safeRenameChannel: exception', e);
         return Promise.resolve(null);
     }
 }
@@ -26,8 +27,9 @@ function safeRenameRole(role, suffix) {
     const base = String(role.name || "").replace(/-archived(-\d+)?$/i, "");
     const trimmed = base.slice(0, Math.max(0, max - suffix.length));
     try {
-        return role.setName(`${trimmed}${suffix}`).catch(() => null);
+        return role.setName(`${trimmed}${suffix}`).catch((e) => { require("./logger").error('safeRenameRole: setName', e); return null; });
     } catch (e) {
+        require("./logger").error('safeRenameRole: exception', e);
         return Promise.resolve(null);
     }
 }
