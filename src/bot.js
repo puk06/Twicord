@@ -317,7 +317,7 @@ function attachHandlers(client) {
             guildState.publicChannelId = targetChannel.id;
             await saveState();
 
-            await message.reply(tUser(message.guild.id, message.author.id, "public_channel_set", { channel: `${targetChannel}` }));
+            await message.reply(tUser(message.guild.id, message.author.id, "public_channel_set", { channel: `${targetChannel.name || targetChannel.id}` }));
             return;
         }
 
@@ -840,7 +840,7 @@ async function publishReplyToPublicChannel(message) {
     const omittedFileCount = Math.max(0, (referenced.attachments?.size || 0) - files.length);
 
     const forwardHeader = t(locale, "public_forward_header", {
-        channel: `${message.channel}`,
+        channel: `#${message.channel.name || message.channel.id}`,
         author: `${referenced.author}`,
         url: referenced.url
     });
@@ -863,7 +863,7 @@ async function publishReplyToPublicChannel(message) {
 
     await publicChannel.send({ content: combinedContent, files });
 
-    await message.reply(t(locale, "public_sent", { channel: `${publicChannel}` }));
+    await message.reply(t(locale, "public_sent", { channel: `#${publicChannel.name || publicChannel.id}` }));
 }
 
 module.exports = { attachHandlers };
