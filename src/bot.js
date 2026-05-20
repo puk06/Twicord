@@ -861,7 +861,27 @@ async function publishReplyToPublicChannel(message) {
         combinedContent = `${combinedContent.slice(0, limit)}${suffix}`;
     }
 
-    const sent = await publicChannel.send({ content: combinedContent, files }).catch((e) => { logger.error('publishReplyToPublicChannel: send to public channel', e); return null; });
+    const embed = new EmbedBuilder()
+        .setTitle(t(locale, "public_embed_title"))
+        .addFields(
+            { name: t(locale, "public_embed_source_channel"), value: `#${message.channel.name || message.channel.id}`, inline: false },
+            { name: t(locale, "public_embed_published_by"), value: `${message.author}`, inline: true },
+            { name: t(locale, "public_embed_original_author"), value: `${referenced.author}`, inline: true }
+        )
+        .setDescription([t(locale, "public_content_start"), referenced.content && referenced.content.length > 0 ? referenced.content : t(locale, "public_no_text")].join('\n'));
+
+    if (omittedFileCount > 0) {
+        embed.addFields({ name: t(locale, "public_embed_attachments"), value: t(locale, "public_files_omitted", { count: omittedFileCount }) });
+    } else if ((referenced.attachments?.size || 0) > 0) {
+        const names = [...(referenced.attachments?.values() ?? [])].slice(0, 10).map(a => a.name || a.url);
+        embed.addFields({ name: t(locale, "public_embed_attachments"), value: names.join('\n') });
+    } else {
+        embed.addFields({ name: t(locale, "public_embed_attachments"), value: t(locale, "public_no_attachments") });
+    }
+
+    embed.addFields({ name: t(locale, "public_embed_jump"), value: t(locale, "public_embed_jump_value", { url: referenced.url }) });
+
+    const sent = await publicChannel.send({ embeds: [embed], files }).catch((e) => { logger.error('publishReplyToPublicChannel: send to public channel', e); return null; });
 
     const postedLink = sent ? (sent.url || `https://discord.com/channels/${guild.id}/${publicChannel.id}/${sent.id}`) : null;
     const channelText = postedLink ? `[posted message](${postedLink})` : `#${publicChannel.name || publicChannel.id}`;
