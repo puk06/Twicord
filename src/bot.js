@@ -102,8 +102,9 @@ async function warnPermissionAbuse(message) {
     if (!canSend) return;
 
     // At this point: member could send a message despite not being the owner or having the role
-    const locale = getUserLocale(guild.id, entry.ownerId);
-    const warning = t(locale, "warn_permission_abuse", { user: `${message.author}`, owner: `<@${entry.ownerId}>`, channel: `${message.channel}`, prefix: PREFIX });
+    // i18n: reply in the author's preferred locale
+    const locale = getUserLocale(guild.id, message.author.id);
+    const warning = t(locale, "warn_permission_abuse", { prefix: PREFIX });
     await message.reply({ content: warning }).catch(() => null);
 }
 
