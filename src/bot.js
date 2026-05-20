@@ -863,18 +863,31 @@ async function publishReplyToPublicChannel(message) {
 
     const embed = new EmbedBuilder()
         .setTitle(t(locale, "public_embed_title"))
+        .setColor(0x1E90FF)
+        .setAuthor({ name: referenced.author.tag || `${referenced.author}`, iconURL: referenced.author.displayAvatarURL?.() })
+        .setDescription(combinedContent)
         .addFields(
-            { name: t(locale, "public_embed_source_channel"), value: `#${message.channel.name || message.channel.id}`, inline: false },
-            { name: t(locale, "public_embed_published_by"), value: `${message.author}`, inline: true },
-            { name: t(locale, "public_embed_original_author"), value: `${referenced.author}`, inline: true }
+            { name: t(locale, "public_embed_source_channel"), value: `#${message.channel.name || message.channel.id}`, inline: true },
+            { name: t(locale, "public_embed_published_by"), value: `${message.author.tag || `${message.author}`}`, inline: true },
+            { name: t(locale, "public_embed_original_author"), value: `${referenced.author.tag || `${referenced.author}`}`, inline: true }
         )
-        .setDescription([t(locale, "public_content_start"), referenced.content && referenced.content.length > 0 ? referenced.content : t(locale, "public_no_text")].join('\n'));
+        .setTimestamp(referenced.createdAt || new Date())
+        .setFooter({ text: t(locale, "help_footer", { prefix: PREFIX }) });
 
     if (omittedFileCount > 0) {
         embed.addFields({ name: t(locale, "public_embed_attachments"), value: t(locale, "public_files_omitted", { count: omittedFileCount }) });
     } else if ((referenced.attachments?.size || 0) > 0) {
         const names = [...(referenced.attachments?.values() ?? [])].slice(0, 10).map(a => a.name || a.url);
         embed.addFields({ name: t(locale, "public_embed_attachments"), value: names.join('\n') });
+
+        // If first attachment is an image, show it in the embed
+        const first = [...(referenced.attachments?.values() ?? [])][0];
+        if (first) {
+            const lower = (first.name || first.url || "").toLowerCase();
+            if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.gif') || lower.endsWith('.webp')) {
+                embed.setImage(first.url);
+            }
+        }
     } else {
         embed.addFields({ name: t(locale, "public_embed_attachments"), value: t(locale, "public_no_attachments") });
     }
