@@ -78,6 +78,33 @@ function getManagedChannelEntryByChannelId(guildState, channelId) {
     return null;
 }
 
+async function warnPermissionAbuse(message) {
+    const guild = message.guild;
+    if (!guild) return;
+    const guildState = getGuildState(guild.id);
+    const entry = getManagedChannelEntryByChannelId(guildState, message.channel.id);
+    if (!entry) return;
+
+    // Ignore owner or server owner
+    if (message.author.id === entry.ownerId) return;
+    if (message.author.id === guild.ownerId) return;
+
+    const member = await guild.members.fetch(message.author.id).catch(() => null);
+    if (!member) return;
+
+    // If member has the channel role, it's allowed
+    if (entry.roleId && member.roles.cache.has(entry.roleId)) return;
+
+    // If the member actually does not have send permission, nothing to do
+    const canSend = message.channel.permissionsFor(member)?.has(PermissionsBitField.Flags.SendMessages);
+    if (!canSend) return;
+
+    // At this point: member could send a message despite not being the owner or having the role
+    const locale = getUserLocale(guild.id, entry.ownerId);
+    const warning = t(locale, "warn_permission_abuse", { user: `${message.author}`, owner: `<@${entry.ownerId}>`, channel: `${message.channel}`, prefix: PREFIX });
+    await message.reply({ content: warning }).catch(() => null);
+}
+
 async function handleLanguageCommand(message, arg) {
     const guildId = message.guild.id;
     const userId = message.author.id;
@@ -112,6 +139,10 @@ function attachHandlers(client) {
 
     client.on(Events.MessageCreate, async (message) => {
         if (!message.guild || message.author.bot) return;
+
+        // Warn on permission abuse when someone posts in a managed channel
+        await warnPermissionAbuse(message).catch(() => null);
+
         if (!message.content.startsWith(PREFIX)) return;
 
         const parts = message.content.trim().split(/\s+/);
