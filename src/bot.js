@@ -878,8 +878,7 @@ async function publishReplyToPublicChannel(message) {
             { name: t(locale, "public_field_source"), value: sourceText, inline: true },
             { name: t(locale, "public_field_sender"), value: senderMention, inline: true },
             { name: t(locale, "public_field_message"), value: fieldMessage, inline: false }
-        )
-        .setFooter({ text: new Date(referenced.createdTimestamp).toLocaleString() });
+        );
 
     const sent = await publicChannel.send({ embeds: [embed], files }).catch((e) => { logger.error('publishReplyToPublicChannel: send to public channel', e); return null; });
 
