@@ -210,11 +210,33 @@ function attachHandlers(client) {
                 return;
             }
 
-            try {
-                await channel.setName(newName).catch((e) => { logger.error('rename: setName', e); });
-            } catch (e) { logger.error('rename: setName exception', e); }
+            const interim = await message.reply(tUser(guild.id, message.author.id, "rename_in_progress")).catch((e) => { logger.error('rename: reply interim', e); return null; });
 
-            await message.reply(tUser(guild.id, message.author.id, "rename_success", { channel: `${channel}` }));
+            let setErr = null;
+            try {
+                await channel.setName(newName);
+            } catch (e) {
+                setErr = e;
+                logger.error('rename: setName', e);
+            }
+
+            const reason = setErr?.message || "unknown";
+
+            if (interim) {
+                try {
+                    if (!setErr) {
+                        await interim.edit(tUser(guild.id, message.author.id, "rename_success", { channel: `${channel}` }));
+                    } else {
+                        await interim.edit(tUser(guild.id, message.author.id, "rename_failed", { reason }));
+                    }
+                } catch (e) { logger.error('rename: edit interim', e); }
+            } else {
+                if (!setErr) {
+                    await message.reply(tUser(guild.id, message.author.id, "rename_success", { channel: `${channel}` }));
+                } else {
+                    await message.reply(tUser(guild.id, message.author.id, "rename_failed", { reason }));
+                }
+            }
             return;
         }
 

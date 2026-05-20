@@ -81,9 +81,11 @@ const MESSAGES = {
         public_no_attachments: "(なし)"
         ,
         usage_rename: "使い方: {prefix} rename <新しい名前>",
+        rename_in_progress: "チャンネル名を変更しています。処理には時間がかかる場合があります。完了したらお知らせします。",
         rename_not_in_managed_channel: "このコマンドは管理対象チャンネル内でのみ使えます。",
         no_rename_permission: "チャンネル名を変更する権限がありません。オーナーかサーバーオーナーのみ実行できます。",
         rename_success: "チャンネル名を変更しました: {channel}",
+        rename_failed: "チャンネル名の変更に失敗しました: {reason}",
         help_rename: "管理対象のプライベートチャンネルの名前を変更します。チャンネルオーナーまたはサーバーオーナーのみ実行できます。日本語などの非ラテン文字も使えます（空白や一部記号はハイフンに置換されます）。例: `{prefix} rename new-name`",
     },
     en: {
@@ -165,9 +167,11 @@ const MESSAGES = {
         public_no_attachments: "(none)"
         ,
         usage_rename: "Usage: {prefix} rename <new-name>",
+        rename_in_progress: "Renaming channel... This may take a while; you'll be notified when it's done.",
         rename_not_in_managed_channel: "This command can only be used inside managed channels.",
         no_rename_permission: "You do not have permission to rename this channel. Only the owner or server owner can do this.",
         rename_success: "Channel renamed: {channel}",
+        rename_failed: "Failed to rename channel: {reason}",
         help_rename: "Rename the managed private channel. Only the channel owner or server owner can run this. Non-Latin characters (e.g. Japanese) are supported; spaces and some symbols are replaced with hyphens. Example: `{prefix} rename new-name`",
     }
 };
