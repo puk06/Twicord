@@ -861,38 +861,23 @@ async function publishReplyToPublicChannel(message) {
         combinedContent = `${combinedContent.slice(0, limit)}${suffix}`;
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(t(locale, "public_embed_title"))
-        .setColor(0x1E90FF)
-        .setAuthor({ name: referenced.author.tag || `${referenced.author}`, iconURL: referenced.author.displayAvatarURL?.() })
-        .setDescription(combinedContent)
-        .addFields(
-            { name: t(locale, "public_embed_source_channel"), value: `#${message.channel.name || message.channel.id}`, inline: true },
-            { name: t(locale, "public_embed_published_by"), value: `${message.author.tag || `${message.author}`}`, inline: true },
-            { name: t(locale, "public_embed_original_author"), value: `${referenced.author.tag || `${referenced.author}`}`, inline: true }
-        )
-        .setTimestamp(referenced.createdAt || new Date())
-        .setFooter({ text: t(locale, "help_footer", { prefix: PREFIX }) });
+    // Minimal embed per user request: source channel, sender mention, message content
+    const sourceText = `#${message.channel.name || message.channel.id}`;
+    const senderMention = referenced.author?.id ? `<@${referenced.author.id}>` : `${referenced.author}`;
+    const messageText = referenced.content && referenced.content.length > 0 ? referenced.content : t(locale, "public_no_text");
 
-    if (omittedFileCount > 0) {
-        embed.addFields({ name: t(locale, "public_embed_attachments"), value: t(locale, "public_files_omitted", { count: omittedFileCount }) });
-    } else if ((referenced.attachments?.size || 0) > 0) {
-        const names = [...(referenced.attachments?.values() ?? [])].slice(0, 10).map(a => a.name || a.url);
-        embed.addFields({ name: t(locale, "public_embed_attachments"), value: names.join('\n') });
-
-        // If first attachment is an image, show it in the embed
-        const first = [...(referenced.attachments?.values() ?? [])][0];
-        if (first) {
-            const lower = (first.name || first.url || "").toLowerCase();
-            if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.gif') || lower.endsWith('.webp')) {
-                embed.setImage(first.url);
-            }
-        }
-    } else {
-        embed.addFields({ name: t(locale, "public_embed_attachments"), value: t(locale, "public_no_attachments") });
+    // Ensure message length fits in an embed field (Discord limit ~1024)
+    let fieldMessage = messageText;
+    if (fieldMessage.length > 1000) {
+        fieldMessage = `${fieldMessage.slice(0, 1000)}...`;
     }
 
-    embed.addFields({ name: t(locale, "public_embed_jump"), value: t(locale, "public_embed_jump_value", { url: referenced.url }) });
+    const embed = new EmbedBuilder()
+        .addFields(
+            { name: t(locale, "public_field_source"), value: sourceText, inline: true },
+            { name: t(locale, "public_field_sender"), value: senderMention, inline: true },
+            { name: t(locale, "public_field_message"), value: fieldMessage, inline: false }
+        );
 
     const sent = await publicChannel.send({ embeds: [embed], files }).catch((e) => { logger.error('publishReplyToPublicChannel: send to public channel', e); return null; });
 

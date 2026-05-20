@@ -77,6 +77,9 @@ const MESSAGES = {
         public_embed_attachments: "添付ファイル",
         public_embed_jump: "元メッセージ",
         public_embed_jump_value: "[メッセージを開く]({url})",
+        public_field_source: "公開元",
+        public_field_sender: "送信者",
+        public_field_message: "メッセージ内容",
         public_no_text: "(本文なし)",
         public_no_attachments: "(なし)"
         ,
@@ -163,6 +166,9 @@ const MESSAGES = {
         public_embed_attachments: "Attachments",
         public_embed_jump: "Original Message",
         public_embed_jump_value: "[Open message]({url})",
+        public_field_source: "Source",
+        public_field_sender: "Sender",
+        public_field_message: "Message",
         public_no_text: "(no text)",
         public_no_attachments: "(none)"
         ,
