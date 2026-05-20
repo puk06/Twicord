@@ -87,23 +87,10 @@ async function warnPermissionAbuse(message) {
     const entry = getManagedChannelEntryByChannelId(guildState, message.channel.id);
     if (!entry) return;
 
-    // Ignore owner
+    // Ignore channel owner and bots; everyone else should be warned
     if (message.author.id === entry.ownerId) return;
+    if (message.author.bot) return;
 
-    // Ignore server owner
-    // if (message.author.id === guild.ownerId) return;
-
-    const member = await guild.members.fetch(message.author.id).catch((e) => { logger.error('warnPermissionAbuse: fetch member', e); return null; });
-    if (!member) return;
-
-    // If member has the channel role, it's allowed
-    if (entry.roleId && member.roles.cache.has(entry.roleId)) return;
-
-    // If the member actually does not have send permission, nothing to do
-    const canSend = message.channel.permissionsFor(member)?.has(PermissionsBitField.Flags.SendMessages);
-    if (!canSend) return;
-
-    // At this point: member could send a message despite not being the owner or having the role
     // i18n: reply in the author's preferred locale
     const locale = getUserLocale(guild.id, message.author.id);
     const warning = t(locale, "warn_permission_abuse", { prefix: PREFIX });
