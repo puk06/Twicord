@@ -882,9 +882,7 @@ async function publishReplyToPublicChannel(message) {
     const sent = await publicChannel.send({ embeds: [embed], files }).catch((e) => { logger.error('publishReplyToPublicChannel: send to public channel', e); return null; });
 
     const postedLink = sent ? (sent.url || `https://discord.com/channels/${guild.id}/${publicChannel.id}/${sent.id}`) : null;
-    const channelText = postedLink ? `[posted message](${postedLink})` : `#${publicChannel.name || publicChannel.id}`;
-
-    await message.reply(t(locale, "public_sent", { channel: channelText }));
+    await message.reply(t(locale, "public_sent", { url: postedLink }));
 }
 
 module.exports = { attachHandlers };
