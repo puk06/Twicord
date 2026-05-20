@@ -84,6 +84,7 @@ const MESSAGES = {
         rename_not_in_managed_channel: "このコマンドは管理対象チャンネル内でのみ使えます。",
         no_rename_permission: "チャンネル名を変更する権限がありません。オーナーかサーバーオーナーのみ実行できます。",
         rename_success: "チャンネル名を変更しました: {channel}",
+        help_rename: "管理対象のプライベートチャンネルの名前を変更します。チャンネルオーナーまたはサーバーオーナーのみ実行できます。入力した名前は小文字化され、利用できない文字はハイフンに置換されます。例: `{prefix} rename new-name`",
     },
     en: {
         request_embed_title: "Channel Join Request",
@@ -167,6 +168,7 @@ const MESSAGES = {
         rename_not_in_managed_channel: "This command can only be used inside managed channels.",
         no_rename_permission: "You do not have permission to rename this channel. Only the owner or server owner can do this.",
         rename_success: "Channel renamed: {channel}",
+        help_rename: "Rename the managed private channel. Only the channel owner or server owner can run this. The provided name is normalized to lowercase and non-allowed characters are replaced with hyphens. Example: `{prefix} rename new-name`",
     }
 };
 
