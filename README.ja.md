@@ -16,16 +16,17 @@
 
 ## 対応コマンド（プレフィックス: `!twicord`）
 
-- `!twicord create` — 自分専用チャンネルを作成します。
-- `!twicord request <@User|UserId>` — 指定ユーザーのチャンネルに参加申請を送信します。
-- `!twicord list` — 作成済みのプライベートチャンネル一覧を表示します。
-- `!twicord set-category <CategoryId>` — サーバーオーナーのみ。デフォルトカテゴリを設定します。
-- `!twicord show-category` — 現在のデフォルトカテゴリを表示します。
-- `!twicord setpublicchannel [#channel|ChannelId]` — サーバーオーナーのみ。全体公開チャンネルを設定します（省略時は現在のチャンネル）。
-- `!twicord public` — 管理対象チャンネル内で、公開したいメッセージに返信して実行すると全体公開チャンネルへ転送します。
-- `!twicord archive [@User|UserId]` — 自分（またはオーナーによる指定）のチャンネルをアーカイブします。
-- `!twicord delete <#channel|ChannelId|@User|UserId>` — チャンネルと関連ロールを削除します。
-- `!twicord lang <ja|en>` — 自分の表示言語を設定します。
+- `!twicord create` または `new` — 自分専用チャンネルを作成します。
+- `!twicord request <@User|UserId>` または `rq` / `apply` — 指定ユーザーのチャンネルに参加申請を送信します。
+- `!twicord rename <new-name>` または `setname` — 管理対象の自分のチャンネル名を変更します。
+- `!twicord list` または `ls` — 作成済みのプライベートチャンネル一覧を表示します。
+- `!twicord set-category <CategoryId>` または `setcategory` / `set-category` / `setcat` — サーバーオーナーのみ。デフォルトカテゴリを設定します。
+- `!twicord show-category` または `showcategory` / `show-category` / `showcat` — 現在のデフォルトカテゴリを表示します。
+- `!twicord setpublicchannel [#channel|ChannelId]` または `set-public-channel` / `setpublic` / `set-public` — サーバーオーナーのみ。全体公開チャンネルを設定します（省略時は現在のチャンネル）。
+- `!twicord public` または `publish` / `share` — 管理対象チャンネル内で、公開したいメッセージに返信して実行すると全体公開チャンネルへ転送します。
+- `!twicord archive [@User|UserId]` または `arch` — 自分（またはオーナーによる指定）のチャンネルをアーカイブします。
+- `!twicord delete <#channel|ChannelId|@User|UserId>` または `del` / `remove` / `rm` — チャンネルと関連ロールを削除します。
+- `!twicord lang <ja|en>` または `language` / `locale` — 自分の表示言語を設定します。
 
 ## インストールと実行
 
@@ -59,6 +60,12 @@ npm start
 - エントリポイント: [src/index.js](src/index.js)
 - 主なモジュール: [src/bot.js](src/bot.js), [src/lib/state.js](src/lib/state.js), [src/lib/utils.js](src/lib/utils.js)
 - 依存: `discord.js`, `fs-extra`, `dotenv`
+
+## 言語設定
+
+- 対応言語は日本語（`ja`）と英語（`en`）です。
+- 既定の言語は日本語（`ja`）です。
+- ユーザーごとの表示言語は `!twicord lang <ja|en>` で変更できます。
 
 ## コントリビュート
 

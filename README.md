@@ -16,16 +16,17 @@ Features
 
 Commands (prefix: `!twicord`)
 
-- `!twicord create` — Create your private channel.
-- `!twicord request <@User|UserId>` — Send a join request to the specified user's channel.
-- `!twicord list` — Show all created private channels.
-- `!twicord set-category <CategoryId>` — (Owner) Set the default category used when creating channels.
-- `!twicord show-category` — Show current default category.
-- `!twicord setpublicchannel [#channel|ChannelId]` — (Owner) Set the channel used for public posts. If omitted, current channel is used.
-- `!twicord public` — Reply to a message inside a managed channel, then run this to forward it to the configured public channel.
-- `!twicord archive [@User|UserId]` — Archive your channel (owner may archive another user's channel).
-- `!twicord delete <#channel|ChannelId|@User|UserId>` — Delete a channel and its role.
-- `!twicord lang <ja|en>` — Set your display language (per-user).
+- `!twicord create` or `new` — Create your private channel.
+- `!twicord request <@User|UserId>` or `rq` / `apply` — Send a join request to the specified user's channel.
+- `!twicord rename <new-name>` or `setname` — Rename the managed private channel you own.
+- `!twicord list` or `ls` — Show all created private channels.
+- `!twicord set-category <CategoryId>` or `setcategory` / `set-category` / `setcat` — (Owner) Set the default category used when creating channels.
+- `!twicord show-category` or `showcategory` / `show-category` / `showcat` — Show current default category.
+- `!twicord setpublicchannel [#channel|ChannelId]` or `set-public-channel` / `setpublic` / `set-public` — (Owner) Set the channel used for public posts. If omitted, current channel is used.
+- `!twicord public` or `publish` / `share` — Reply to a message inside a managed channel, then run this to forward it to the configured public channel.
+- `!twicord archive [@User|UserId]` or `arch` — Archive your channel (owner may archive another user's channel).
+- `!twicord delete <#channel|ChannelId|@User|UserId>` or `del` / `remove` / `rm` — Delete a channel and its role.
+- `!twicord lang <ja|en>` or `language` / `locale` — Set your display language (per-user).
 
 Installation & Run
 
@@ -63,7 +64,7 @@ Internationalization
 
 - Supports Japanese (`ja`) and English (`en`).
 - Users can set their preferred language with `!twicord lang <ja|en>`; messages and embeds will be localized where supported.
- - Default language is English (`en`).
+- Default language is Japanese (`ja`).
 
 License
 
