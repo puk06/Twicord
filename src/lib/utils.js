@@ -1,7 +1,9 @@
 function normalizeChannelName(input) {
-    const cleaned = input
+    // Allow Unicode letters and numbers (e.g. Japanese), keep hyphens.
+    // Replace sequences of invalid characters with a single hyphen.
+    const cleaned = String(input)
         .toLowerCase()
-        .replace(/[^a-z0-9\-]/g, "-")
+            .replace(/[^\p{L}\p{N}-]+/gu, "-")
         .replace(/-+/g, "-")
         .replace(/^-+|-+$/g, "");
 
