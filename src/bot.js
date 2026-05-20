@@ -55,6 +55,7 @@ function buildHelpEmbed(locale) {
         .addFields(
             { name: `${PREFIX} create`, value: t(locale, "help_create", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} request <@User|UserId>`, value: t(locale, "help_request", { prefix: PREFIX }), inline: false },
+            { name: `${PREFIX} rename <new-name>`, value: t(locale, "usage_rename", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} list`, value: t(locale, "help_list"), inline: false },
             { name: `${PREFIX} set-category <CategoryId> (Owner)`, value: t(locale, "help_set_category", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} show-category`, value: t(locale, "help_show_category"), inline: false },
