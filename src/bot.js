@@ -176,6 +176,46 @@ function attachHandlers(client) {
             return;
         }
 
+        // rename channel (owner or server owner) - must be in managed channel
+        if (["rename", "setname"].includes(sub)) {
+            const raw = parts.slice(2).join(" ") || null;
+            const guild = message.guild;
+            if (!guild) return;
+
+            const guildState = getGuildState(guild.id);
+            const entry = getManagedChannelEntryByChannelId(guildState, message.channel.id);
+            if (!entry) {
+                const locale = getUserLocale(guild.id, message.author.id);
+                await message.reply(t(locale, "rename_not_in_managed_channel", { prefix: PREFIX }));
+                return;
+            }
+
+            const isOwner = message.author.id === entry.ownerId || message.author.id === guild.ownerId;
+            if (!isOwner) {
+                await message.reply(tUser(guild.id, message.author.id, "no_rename_permission"));
+                return;
+            }
+
+            if (!raw) {
+                await message.reply(tUser(guild.id, message.author.id, "usage_rename", { prefix: PREFIX }));
+                return;
+            }
+
+            const newName = utils.normalizeChannelName(raw);
+            const channel = await guild.channels.fetch(entry.channelId).catch(() => null);
+            if (!channel) {
+                await message.reply(tUser(guild.id, message.author.id, "target_channel_not_found_admin"));
+                return;
+            }
+
+            try {
+                await channel.setName(newName).catch(() => null);
+            } catch (e) { /* ignore */ }
+
+            await message.reply(tUser(guild.id, message.author.id, "rename_success", { channel: `${channel}` }));
+            return;
+        }
+
         // list
         if (["list", "ls"].includes(sub)) {
             await listPrivateChannels(message);

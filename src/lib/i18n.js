@@ -79,6 +79,11 @@ const MESSAGES = {
         public_embed_jump_value: "[メッセージを開く]({url})",
         public_no_text: "(本文なし)",
         public_no_attachments: "(なし)"
+        ,
+        usage_rename: "使い方: {prefix} rename <新しい名前>",
+        rename_not_in_managed_channel: "このコマンドは管理対象チャンネル内でのみ使えます。",
+        no_rename_permission: "チャンネル名を変更する権限がありません。オーナーかサーバーオーナーのみ実行できます。",
+        rename_success: "チャンネル名を変更しました: {channel}",
     },
     en: {
         request_embed_title: "Channel Join Request",
@@ -157,6 +162,11 @@ const MESSAGES = {
         public_embed_jump_value: "[Open message]({url})",
         public_no_text: "(no text)",
         public_no_attachments: "(none)"
+        ,
+        usage_rename: "Usage: {prefix} rename <new-name>",
+        rename_not_in_managed_channel: "This command can only be used inside managed channels.",
+        no_rename_permission: "You do not have permission to rename this channel. Only the owner or server owner can do this.",
+        rename_success: "Channel renamed: {channel}",
     }
 };
 
