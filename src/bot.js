@@ -414,7 +414,12 @@ async function createPrivateChannel(client, message) {
                     PermissionsBitField.Flags.ViewChannel,
                     PermissionsBitField.Flags.ReadMessageHistory
                 ],
-                deny: [PermissionsBitField.Flags.SendMessages]
+                deny: [
+                    PermissionsBitField.Flags.SendMessages,
+                    PermissionsBitField.Flags.AttachFiles,
+                    PermissionsBitField.Flags.EmbedLinks,
+                    PermissionsBitField.Flags.AddReactions
+                ]
             },
             {
                 id: member.id,
