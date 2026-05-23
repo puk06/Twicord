@@ -4,6 +4,19 @@ const { t, normalizeLocale, DEFAULT_LOCALE } = require("./lib/i18n");
 const utils = require("./lib/utils");
 const logger = require("./lib/logger");
 
+// @ts-check
+
+/**
+ * Editor-only typedefs for better JS/TS language tooling.
+ * Adjust imports to point at local TS files or installed types when available.
+ */
+/** @typedef {import('discord.js').Client} DiscordClient */
+/** @typedef {import('discord.js').Message} DiscordMessage */
+/** @typedef {import('discord.js').Guild} DiscordGuild */
+/** @typedef {import('discord.js').User} DiscordUser */
+/** @typedef {import('discord.js').MessageReaction} DiscordMessageReaction */
+/** @typedef {import('./lib/state.ts').GuildState} GuildState */
+
 const PREFIX = "!twicord";
 const APPROVE_EMOJI = "✅";
 const REJECT_EMOJI = "❌";
@@ -16,16 +29,32 @@ function getTotalManagedChannels() {
     return total;
 }
 
+/**
+ * @param {string} guildId
+ * @param {string} userId
+ * @returns {string}
+ */
 function getUserLocale(guildId, userId) {
     const guildState = getGuildState(guildId);
     return guildState.userLocales?.[userId] || DEFAULT_LOCALE;
 }
 
+
+/**
+ * @param {string} guildId
+ * @param {string} userId
+ * @param {string} key
+ * @param {Record<string, any>} [vars]
+ * @returns {string}
+ */
 function tUser(guildId, userId, key, vars = {}) {
     const locale = getUserLocale(guildId, userId);
     return t(locale, key, { ...vars, prefix: PREFIX });
 }
 
+/**
+ * @param {DiscordClient} client
+ */
 async function updateActivity(client) {
     try {
         const total = getTotalManagedChannels();
@@ -36,6 +65,11 @@ async function updateActivity(client) {
     }
 }
 
+/**
+ * @param {string} locale
+ * @param {DiscordUser} requester
+ * @param {import('discord.js').GuildChannel | import('discord.js').TextChannel} channel
+ */
 function buildRequestEmbed(locale, requester, channel) {
     return new EmbedBuilder()
         .setTitle(t(locale, "request_embed_title"))
@@ -48,6 +82,9 @@ function buildRequestEmbed(locale, requester, channel) {
         .setTimestamp();
 }
 
+/**
+ * @param {string} locale
+ */
 function buildHelpEmbed(locale) {
     return new EmbedBuilder()
         .setTitle(t(locale, "help_title"))
@@ -70,6 +107,11 @@ function buildHelpEmbed(locale) {
         .setTimestamp();
 }
 
+/**
+ * @param {GuildState} guildState
+ * @param {string} channelId
+ * @returns {any|null}
+ */
 function getManagedChannelEntryByChannelId(guildState, channelId) {
     for (const entry of Object.values(guildState.channels || {})) {
         if (entry?.channelId === channelId) return entry;
@@ -80,6 +122,9 @@ function getManagedChannelEntryByChannelId(guildState, channelId) {
     return null;
 }
 
+/**
+ * @param {DiscordMessage} message
+ */
 async function warnPermissionAbuse(message) {
     const guild = message.guild;
     if (!guild) return;
@@ -97,6 +142,10 @@ async function warnPermissionAbuse(message) {
     await message.reply({ content: warning }).catch((e) => logger.error('warnPermissionAbuse: reply', e));
 }
 
+/**
+ * @param {DiscordMessage} message
+ * @param {string|null} arg
+ */
 async function handleLanguageCommand(message, arg) {
     const guildId = message.guild.id;
     const userId = message.author.id;
@@ -121,10 +170,17 @@ async function handleLanguageCommand(message, arg) {
     await message.reply(t(nextLocale, "lang_updated", { locale: nextLocale }));
 }
 
+/**
+ * @param {DiscordClient} client
+ */
 function attachHandlers(client) {
     client.on(Events.ClientReady, async () => {
         await loadState();
         console.log(`Logged in as ${client.user.tag}`);
+        // synchronize managed channels' permission overwrites at startup
+        try {
+            await updateManagedChannelsPermissions(client);
+        } catch (e) { logger.error('updateManagedChannelsPermissions', e); }
         await updateActivity(client);
         setInterval(() => updateActivity(client).catch((e) => logger.error('updateActivity interval', e)), 60 * 1000);
     });
@@ -358,6 +414,10 @@ function attachHandlers(client) {
     });
 }
 
+/**
+ * @param {DiscordClient} client
+ * @param {DiscordMessage} message
+ */
 async function createPrivateChannel(client, message) {
     const guild = message.guild;
     if (!guild) return;
@@ -462,6 +522,10 @@ async function createPrivateChannel(client, message) {
     await message.reply(tUser(guild.id, message.author.id, "created_channel", { channel: `${channel}` }));
 }
 
+/**
+ * @param {DiscordMessage} message
+ * @param {string} targetUserId
+ */
 async function requestToJoin(message, targetUserId) {
     const guild = message.guild;
     if (!guild) return;
@@ -507,6 +571,9 @@ async function requestToJoin(message, targetUserId) {
     await message.reply(tUser(guild.id, message.author.id, "request_sent", { channel: `${channel}` }));
 }
 
+/**
+ * @param {DiscordMessage} message
+ */
 async function listPrivateChannels(message) {
     const guild = message.guild;
     if (!guild) return;
@@ -534,6 +601,10 @@ async function listPrivateChannels(message) {
     await message.reply({ embeds: [embed] });
 }
 
+/**
+ * @param {DiscordMessage} message
+ * @param {string|null} targetUserId
+ */
 async function archivePrivateChannel(message, targetUserId) {
     const guild = message.guild;
     if (!guild) return;
@@ -583,6 +654,10 @@ async function archivePrivateChannel(message, targetUserId) {
     await message.reply(tUser(guild.id, message.author.id, "archived_channel", { channel: `${channel}` }));
 }
 
+/**
+ * @param {DiscordMessage} message
+ * @param {string|null} targetUserId
+ */
 async function deletePrivateChannel(message, targetUserId) {
     const guild = message.guild;
     if (!guild) return;
@@ -628,6 +703,10 @@ async function deletePrivateChannel(message, targetUserId) {
     await message.reply(tUser(guild.id, message.author.id, "deleted_channel_role_state"));
 }
 
+/**
+ * @param {DiscordMessage} message
+ * @param {string} channelId
+ */
 async function deleteByChannelId(message, channelId) {
     const guild = message.guild;
     if (!guild) return;
@@ -703,6 +782,10 @@ async function deleteByChannelId(message, channelId) {
     await message.reply(tUser(guild.id, message.author.id, "deleted_channel_role_by_id"));
 }
 
+/**
+ * @param {DiscordMessageReaction} reaction
+ * @param {DiscordUser} user
+ */
 async function handleRequestReaction(reaction, user) {
     if (user.bot) return;
 
@@ -780,6 +863,9 @@ async function handleRequestReaction(reaction, user) {
     await saveState();
 }
 
+/**
+ * @param {DiscordMessage} message
+ */
 async function publishReplyToPublicChannel(message) {
     const guild = message.guild;
     if (!guild) return;
@@ -876,6 +962,80 @@ async function publishReplyToPublicChannel(message) {
 
     const postedLink = sent ? (sent.url || `https://discord.com/channels/${guild.id}/${publicChannel.id}/${sent.id}`) : null;
     await message.reply(t(locale, "public_sent", { url: postedLink }));
+}
+
+/**
+ * Update permission overwrites for all managed channels to match createPrivateChannel defaults.
+ * @param {DiscordClient} client
+ */
+async function updateManagedChannelsPermissions(client) {
+    for (const [guildId, guildState] of Object.entries(state.guilds || {})) {
+        try {
+            const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch(() => null);
+            if (!guild) continue;
+
+            for (const [ownerId, entry] of Object.entries(guildState.channels || {})) {
+                try {
+                    const channel = guild.channels.cache.get(entry.channelId) || await guild.channels.fetch(entry.channelId).catch(() => null);
+                    if (!channel || channel.type !== ChannelType.GuildText) continue;
+
+                    // fetch role and member references where possible
+                    const role = entry.roleId ? await guild.roles.fetch(entry.roleId).catch(() => null) : null;
+                    const ownerMember = entry.ownerId ? await guild.members.fetch(entry.ownerId).catch(() => null) : null;
+
+                    // everyone: deny view
+                    try {
+                        await channel.permissionOverwrites.edit(guild.roles.everyone.id, { ViewChannel: false }).catch(() => null);
+                    } catch (e) { /* ignore */ }
+
+                    // role: allow view/read, deny send/attach/embed/reactions
+                    if (role) {
+                        try {
+                            await channel.permissionOverwrites.edit(role.id, {
+                                ViewChannel: true,
+                                ReadMessageHistory: true,
+                                SendMessages: false,
+                                AttachFiles: false,
+                                EmbedLinks: false,
+                                AddReactions: false
+                            }).catch(() => null);
+                        } catch (e) { /* ignore */ }
+                    }
+
+                    // owner: allow send/read/etc
+                    if (ownerMember) {
+                        try {
+                            await channel.permissionOverwrites.edit(entry.ownerId, {
+                                ViewChannel: true,
+                                SendMessages: true,
+                                ReadMessageHistory: true,
+                                AttachFiles: true,
+                                EmbedLinks: true,
+                                AddReactions: true
+                            }).catch(() => null);
+                        } catch (e) { /* ignore */ }
+                    }
+
+                    // bot: allow manage/send/read
+                    try {
+                        await channel.permissionOverwrites.edit(client.user.id, {
+                            ViewChannel: true,
+                            SendMessages: true,
+                            ReadMessageHistory: true,
+                            ManageMessages: true,
+                            EmbedLinks: true,
+                            AddReactions: true
+                        }).catch(() => null);
+                    } catch (e) { /* ignore */ }
+
+                } catch (e) {
+                    logger.error('updateManagedChannelsPermissions: per-channel', e);
+                }
+            }
+        } catch (e) {
+            logger.error('updateManagedChannelsPermissions: per-guild', e);
+        }
+    }
 }
 
 module.exports = { attachHandlers };
