@@ -36,70 +36,6 @@ async function updateActivity(client) {
     }
 }
 
-async function updateManagedChannelsPermissions(client) {
-    try {
-        const guilds = state.guilds || {};
-        for (const [guildId, guildState] of Object.entries(guilds)) {
-            const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch((e) => { logger.error('updateManagedChannelsPermissions: fetch guild', e); return null; });
-            if (!guild) continue;
-
-            const entries = Object.values(guildState.channels || {});
-            for (const entry of entries) {
-                if (!entry || !entry.channelId) continue;
-                const channel = await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('updateManagedChannelsPermissions: fetch channel', e); return null; });
-                if (!channel) continue;
-
-                // everyone: hide channel
-                try {
-                    await channel.permissionOverwrites.edit(guild.roles.everyone.id, { ViewChannel: false }).catch((e) => logger.error('updateManagedChannelsPermissions: edit everyone', e));
-                } catch (e) { logger.error('updateManagedChannelsPermissions: everyone exception', e); }
-
-                // role: match createPrivateChannel (view-only role)
-                if (entry.roleId) {
-                    try {
-                        await channel.permissionOverwrites.edit(entry.roleId, {
-                            ViewChannel: true,
-                            ReadMessageHistory: true,
-                            SendMessages: false,
-                            AttachFiles: false,
-                            EmbedLinks: false,
-                            AddReactions: false
-                        }).catch((e) => logger.error('updateManagedChannelsPermissions: edit role', e));
-                    } catch (e) { logger.error('updateManagedChannelsPermissions: role exception', e); }
-                }
-
-                // owner/member: match createPrivateChannel (owner can send)
-                if (entry.ownerId) {
-                    try {
-                        await channel.permissionOverwrites.edit(entry.ownerId, {
-                            ViewChannel: true,
-                            SendMessages: true,
-                            ReadMessageHistory: true,
-                            AttachFiles: true,
-                            EmbedLinks: true,
-                            AddReactions: true
-                        }).catch((e) => logger.error('updateManagedChannelsPermissions: edit owner', e));
-                    } catch (e) { logger.error('updateManagedChannelsPermissions: owner exception', e); }
-                }
-
-                // bot: match createPrivateChannel (allow send/manage and reactions)
-                try {
-                    await channel.permissionOverwrites.edit(client.user.id, {
-                        ViewChannel: true,
-                        SendMessages: true,
-                        ReadMessageHistory: true,
-                        ManageMessages: true,
-                        EmbedLinks: true,
-                        AddReactions: true
-                    }).catch((e) => logger.error('updateManagedChannelsPermissions: edit bot', e));
-                } catch (e) { logger.error('updateManagedChannelsPermissions: bot exception', e); }
-            }
-        }
-    } catch (e) {
-        logger.error('updateManagedChannelsPermissions: outer', e);
-    }
-}
-
 function buildRequestEmbed(locale, requester, channel) {
     return new EmbedBuilder()
         .setTitle(t(locale, "request_embed_title"))
@@ -190,7 +126,6 @@ function attachHandlers(client) {
         await loadState();
         console.log(`Logged in as ${client.user.tag}`);
         await updateActivity(client);
-        await updateManagedChannelsPermissions(client).catch((e) => logger.error('ClientReady: updateManagedChannelsPermissions', e));
         setInterval(() => updateActivity(client).catch((e) => logger.error('updateActivity interval', e)), 60 * 1000);
     });
 
