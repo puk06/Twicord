@@ -54,7 +54,7 @@ async function updateManagedChannelsPermissions(client) {
                     await channel.permissionOverwrites.edit(guild.roles.everyone.id, { ViewChannel: false }).catch((e) => logger.error('updateManagedChannelsPermissions: edit everyone', e));
                 } catch (e) { logger.error('updateManagedChannelsPermissions: everyone exception', e); }
 
-                // role: view-only
+                // role: match createPrivateChannel (view-only role)
                 if (entry.roleId) {
                     try {
                         await channel.permissionOverwrites.edit(entry.roleId, {
@@ -68,21 +68,21 @@ async function updateManagedChannelsPermissions(client) {
                     } catch (e) { logger.error('updateManagedChannelsPermissions: role exception', e); }
                 }
 
-                // owner/member: view-only
+                // owner/member: match createPrivateChannel (owner can send)
                 if (entry.ownerId) {
                     try {
                         await channel.permissionOverwrites.edit(entry.ownerId, {
                             ViewChannel: true,
+                            SendMessages: true,
                             ReadMessageHistory: true,
-                            SendMessages: false,
-                            AttachFiles: false,
-                            EmbedLinks: false,
-                            AddReactions: false
+                            AttachFiles: true,
+                            EmbedLinks: true,
+                            AddReactions: true
                         }).catch((e) => logger.error('updateManagedChannelsPermissions: edit owner', e));
                     } catch (e) { logger.error('updateManagedChannelsPermissions: owner exception', e); }
                 }
 
-                // bot: keep send/manage but disable reactions
+                // bot: match createPrivateChannel (allow send/manage and reactions)
                 try {
                     await channel.permissionOverwrites.edit(client.user.id, {
                         ViewChannel: true,
@@ -90,7 +90,7 @@ async function updateManagedChannelsPermissions(client) {
                         ReadMessageHistory: true,
                         ManageMessages: true,
                         EmbedLinks: true,
-                        AddReactions: false
+                        AddReactions: true
                     }).catch((e) => logger.error('updateManagedChannelsPermissions: edit bot', e));
                 } catch (e) { logger.error('updateManagedChannelsPermissions: bot exception', e); }
             }
