@@ -478,7 +478,10 @@ async function createPrivateChannel(client, message) {
                     PermissionsBitField.Flags.SendMessages,
                     PermissionsBitField.Flags.AttachFiles,
                     PermissionsBitField.Flags.EmbedLinks,
-                    PermissionsBitField.Flags.AddReactions
+                    PermissionsBitField.Flags.AddReactions,
+                    PermissionsBitField.Flags.SendMessagesInThreads,
+                    PermissionsBitField.Flags.CreatePublicThreads,
+                    PermissionsBitField.Flags.CreatePrivateThreads
                 ]
             },
             {
@@ -490,6 +493,11 @@ async function createPrivateChannel(client, message) {
                     PermissionsBitField.Flags.AttachFiles,
                     PermissionsBitField.Flags.EmbedLinks,
                     PermissionsBitField.Flags.AddReactions
+                ],
+                deny: [
+                    PermissionsBitField.Flags.SendMessagesInThreads,
+                    PermissionsBitField.Flags.CreatePublicThreads,
+                    PermissionsBitField.Flags.CreatePrivateThreads
                 ]
             },
             {
@@ -501,6 +509,11 @@ async function createPrivateChannel(client, message) {
                     PermissionsBitField.Flags.ManageMessages,
                     PermissionsBitField.Flags.EmbedLinks,
                     PermissionsBitField.Flags.AddReactions
+                ],
+                deny: [
+                    PermissionsBitField.Flags.SendMessagesInThreads,
+                    PermissionsBitField.Flags.CreatePublicThreads,
+                    PermissionsBitField.Flags.CreatePrivateThreads
                 ]
             }
         ]
@@ -997,7 +1010,10 @@ async function updateManagedChannelsPermissions(client) {
                                 SendMessages: false,
                                 AttachFiles: false,
                                 EmbedLinks: false,
-                                AddReactions: false
+                                AddReactions: false,
+                                SendMessagesInThreads: false,
+                                CreatePublicThreads: false,
+                                CreatePrivateThreads: false
                             }).catch(() => null);
                         } catch (e) { /* ignore */ }
                     }
@@ -1011,7 +1027,10 @@ async function updateManagedChannelsPermissions(client) {
                                 ReadMessageHistory: true,
                                 AttachFiles: true,
                                 EmbedLinks: true,
-                                AddReactions: true
+                                AddReactions: true,
+                                SendMessagesInThreads: true,
+                                CreatePublicThreads: true,
+                                CreatePrivateThreads: true
                             }).catch(() => null);
                         } catch (e) { /* ignore */ }
                     }
@@ -1024,7 +1043,10 @@ async function updateManagedChannelsPermissions(client) {
                             ReadMessageHistory: true,
                             ManageMessages: true,
                             EmbedLinks: true,
-                            AddReactions: true
+                            AddReactions: true,
+                            SendMessagesInThreads: false,
+                            CreatePublicThreads: false,
+                            CreatePrivateThreads: false
                         }).catch(() => null);
                     } catch (e) { /* ignore */ }
 
