@@ -94,6 +94,7 @@ function buildHelpEmbed(locale) {
             { name: `${PREFIX} create`, value: t(locale, "help_create", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} request <@User|UserId>`, value: t(locale, "help_request", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} rename <new-name>`, value: t(locale, "help_rename", { prefix: PREFIX }), inline: false },
+            { name: `${PREFIX} description <text>`, value: t(locale, "help_description", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} list`, value: t(locale, "help_list"), inline: false },
             { name: `${PREFIX} set-category <CategoryId> (Owner)`, value: t(locale, "help_set_category", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} show-category`, value: t(locale, "help_show_category"), inline: false },
@@ -168,6 +169,41 @@ async function handleLanguageCommand(message, arg) {
     await saveState();
 
     await message.reply(t(nextLocale, "lang_updated", { locale: nextLocale }));
+}
+
+/**
+ * @param {DiscordMessage} message
+ * @param {string|null} rawDescription
+ */
+async function handleDescriptionCommand(message, rawDescription) {
+    const guild = message.guild;
+    if (!guild) return;
+
+    const locale = getUserLocale(guild.id, message.author.id);
+    const guildState = getGuildState(guild.id);
+    const entry = getManagedChannelEntryByChannelId(guildState, message.channel.id);
+
+    if (!entry) {
+        await message.reply(t(locale, "description_not_in_managed_channel", { prefix: PREFIX }));
+        return;
+    }
+
+    const isOwner = message.author.id === entry.ownerId || message.author.id === guild.ownerId;
+    if (!isOwner) {
+        await message.reply(t(locale, "no_description_permission"));
+        return;
+    }
+
+    const description = rawDescription?.trim();
+    if (!description) {
+        await message.reply(t(locale, "usage_description", { prefix: PREFIX }));
+        return;
+    }
+
+    entry.description = description;
+    await saveState();
+
+    await message.reply(t(locale, "description_updated", { description }));
 }
 
 /**
@@ -280,6 +316,13 @@ function attachHandlers(client) {
                     await message.reply(tUser(guild.id, message.author.id, "rename_failed", { reason }));
                 }
             }
+            return;
+        }
+
+        // description
+        if (["description"].includes(sub)) {
+            const rawDescription = parts.slice(2).join(" ") || null;
+            await handleDescriptionCommand(message, rawDescription);
             return;
         }
 
@@ -527,6 +570,7 @@ async function createPrivateChannel(client, message) {
         roleId: role.id,
         channelId: channel.id,
         categoryId: category.id,
+        description: "",
         requests: {}
     };
 
@@ -608,7 +652,15 @@ async function listPrivateChannels(message) {
         const channel = guild.channels.cache.get(entry.channelId) || await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('listPrivateChannels: fetch channel', e); return null; });
         const channelLabel = channel ? `${channel}` : t(locale, "channel_id_label", { channelId: entry.channelId });
         const ownerMention = `<@${entry.ownerId}>`;
-        embed.addFields({ name: channelLabel, value: t(locale, "owner_label", { owner: ownerMention }), inline: false });
+        const description = (entry.description || "").trim();
+        const descriptionText = description
+            ? (description.length > 900 ? `${description.slice(0, 900)}...` : description)
+            : t(locale, "description_unset");
+        embed.addFields({
+            name: channelLabel,
+            value: `${t(locale, "owner_label", { owner: ownerMention })}\n${t(locale, "description_label", { description: descriptionText })}`,
+            inline: false
+        });
     }
 
     await message.reply({ embeds: [embed] });
