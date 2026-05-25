@@ -497,21 +497,30 @@ async function createPrivateChannel(client, message) {
     const member = await guild.members.fetch(message.author.id);
     const channelNameBase = utils.normalizeChannelName(`${message.author.username}-${message.author.id.slice(-4)}`);
 
-    const role = await guild.roles.create({
-        name: `${message.author.username} channel`,
-        hoist: false,
-        mentionable: false,
-        permissions: [
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.ReadMessageHistory
-        ]
-    });
+    let role = null;
+    try {
+        role = await guild.roles.create({
+            name: `${message.author.username} channel`,
+            hoist: false,
+            mentionable: false,
+            permissions: [
+                PermissionsBitField.Flags.ViewChannel,
+                PermissionsBitField.Flags.ReadMessageHistory
+            ]
+        });
+    } catch (e) {
+        logger.error('createPrivateChannel: create role', e);
+        await message.reply(tUser(guild.id, message.author.id, "create_failed", { reason: e?.message || String(e) }));
+        return;
+    }
 
-    const channel = await guild.channels.create({
-        name: `${channelNameBase}-room`,
-        type: ChannelType.GuildText,
-        parent: category.id,
-        permissionOverwrites: [
+    let channel = null;
+    try {
+        channel = await guild.channels.create({
+            name: `${channelNameBase}-room`,
+            type: ChannelType.GuildText,
+            parent: category.id,
+            permissionOverwrites: [
             {
                 id: guild.roles.everyone.id,
                 deny: [PermissionsBitField.Flags.ViewChannel]
@@ -566,6 +575,15 @@ async function createPrivateChannel(client, message) {
             }
         ]
     });
+    } catch (e) {
+        logger.error('createPrivateChannel: create channel', e);
+        // cleanup role if channel creation failed
+        if (role) {
+            try { await role.delete().catch(() => null); } catch (_) { /* ignore */ }
+        }
+        await message.reply(tUser(guild.id, message.author.id, "create_failed", { reason: e?.message || String(e) }));
+        return;
+    }
 
     await member.roles.add(role.id).catch((e) => logger.error('createPrivateChannel: add role', e));
 

@@ -1,13 +1,10 @@
 function normalizeChannelName(input) {
-    // Allow Unicode letters and numbers (e.g. Japanese), keep hyphens.
-    // Replace sequences of invalid characters with a single hyphen.
-    const cleaned = String(input)
-        .toLowerCase()
-            .replace(/[^\p{L}\p{N}-]+/gu, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
-    return cleaned.length > 0 ? cleaned.slice(0, 90) : "private-channel";
+    // Option A: pass the user's input to Discord as-is (trim and limit length).
+    // Discord will accept or reject names according to its own rules; callers
+    // must handle rejections. We intentionally do not perform character
+    // replacement here so symbols like fullwidth '！' are preserved.
+    const raw = String(input || "").trim();
+    return raw.length > 0 ? raw.slice(0, 90) : "private-channel";
 }
 
 function safeRenameChannel(channel, suffix) {
