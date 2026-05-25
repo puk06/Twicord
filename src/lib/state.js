@@ -5,8 +5,16 @@ const logger = require("./logger");
 const DATA_FOLDER = path.join(__dirname, "..", "..", ".data");
 const DATA_FILE = path.join(DATA_FOLDER, "channels.json");
 
+/** @typedef {import('./statedef').GuildState} GuildState */
+/** @typedef {import('./statedef').ChannelEntry} ChannelEntry */
+/** @typedef {import('./statedef').RequestEntry} RequestEntry */
+/** @typedef {import('./statedef').RootState} RootState */
+
 const state = { guilds: {} };
 
+/**
+ * @returns {Promise<void>}
+ */
 async function loadState() {
     await fs.ensureDir(DATA_FOLDER);
     if (!(await fs.pathExists(DATA_FILE))) {
@@ -20,11 +28,18 @@ async function loadState() {
     }
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 async function saveState() {
     await fs.ensureDir(DATA_FOLDER);
     await fs.writeJson(DATA_FILE, state, { spaces: 2 });
 }
 
+/**
+ * @param {string} guildId
+ * @returns {GuildState}
+ */
 function getGuildState(guildId) {
     if (!state.guilds[guildId]) {
         state.guilds[guildId] = { channels: {}, archives: {}, userLocales: {}, publicChannelId: null };

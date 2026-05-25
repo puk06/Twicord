@@ -1,8 +1,8 @@
 const { EmbedBuilder, Events, ActivityType, ChannelType, PermissionsBitField } = require("discord.js");
-const { state, loadState, saveState, getGuildState } = require("./lib/state");
-const { t, normalizeLocale, DEFAULT_LOCALE } = require("./lib/i18n");
-const utils = require("./lib/utils");
-const logger = require("./lib/logger");
+const { state, loadState, saveState, getGuildState } = require("./lib/state.js");
+const { t, normalizeLocale, DEFAULT_LOCALE } = require("./lib/i18n.js");
+const utils = require("./lib/utils.js");
+const logger = require("./lib/logger.js");
 
 // @ts-check
 
@@ -15,7 +15,12 @@ const logger = require("./lib/logger");
 /** @typedef {import('discord.js').Guild} DiscordGuild */
 /** @typedef {import('discord.js').User} DiscordUser */
 /** @typedef {import('discord.js').MessageReaction} DiscordMessageReaction */
-/** @typedef {import('./lib/state.ts').GuildState} GuildState */
+/** @typedef {import('discord.js').GuildChannel} GuildChannel */
+/** @typedef {import('discord.js').TextChannel} TextChannel */
+/** @typedef {import('./lib/statedef').GuildState} GuildState */
+/** @typedef {import('./lib/statedef').ChannelEntry} ChannelEntry */
+/** @typedef {import('./lib/statedef').RequestEntry} RequestEntry */
+/** @typedef {import('./lib/statedef').RootState} RootState */
 
 const PREFIX = "!twicord";
 const APPROVE_EMOJI = "✅";
@@ -68,7 +73,7 @@ async function updateActivity(client) {
 /**
  * @param {string} locale
  * @param {DiscordUser} requester
- * @param {import('discord.js').GuildChannel | import('discord.js').TextChannel} channel
+ * @param {GuildChannel | TextChannel} channel
  */
 function buildRequestEmbed(locale, requester, channel) {
     return new EmbedBuilder()
@@ -111,7 +116,7 @@ function buildHelpEmbed(locale) {
 /**
  * @param {GuildState} guildState
  * @param {string} channelId
- * @returns {any|null}
+ * @returns {ChannelEntry|null}
  */
 function getManagedChannelEntryByChannelId(guildState, channelId) {
     for (const entry of Object.values(guildState.channels || {})) {
