@@ -19,6 +19,7 @@ Commands (prefix: `!twicord`)
 - `!twicord create` or `new` — Create your private channel.
 - `!twicord request <@User|UserId>` or `rq` / `apply` — Send a join request to the specified user's channel.
 - `!twicord rename <new-name>` or `setname` — Rename the managed private channel you own.
+- `!twicord description <text>` — Set or update the description for your managed private channel (owner only).
 - `!twicord list` or `ls` — Show all created private channels.
 - `!twicord set-category <CategoryId>` or `setcategory` / `set-category` / `setcat` — (Owner) Set the default category used when creating channels.
 - `!twicord show-category` or `showcategory` / `show-category` / `showcat` — Show current default category.
@@ -27,6 +28,7 @@ Commands (prefix: `!twicord`)
 - `!twicord archive [@User|UserId]` or `arch` — Archive your channel (owner may archive another user's channel).
 - `!twicord delete <#channel|ChannelId|@User|UserId>` or `del` / `remove` / `rm` — Delete a channel and its role.
 - `!twicord lang <ja|en>` or `language` / `locale` — Set your display language (per-user).
+- `!twicord help` or `h` / `?` — Show the bot help embed with available commands and usage.
 
 Installation & Run
 

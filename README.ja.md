@@ -19,6 +19,7 @@
 - `!twicord create` または `new` — 自分専用チャンネルを作成します。
 - `!twicord request <@User|UserId>` または `rq` / `apply` — 指定ユーザーのチャンネルに参加申請を送信します。
 - `!twicord rename <new-name>` または `setname` — 管理対象の自分のチャンネル名を変更します。
+- `!twicord description <text>` — 管理対象チャンネルの説明文を設定・更新します（オーナー権限）。
 - `!twicord list` または `ls` — 作成済みのプライベートチャンネル一覧を表示します。
 - `!twicord set-category <CategoryId>` または `setcategory` / `set-category` / `setcat` — サーバーオーナーのみ。デフォルトカテゴリを設定します。
 - `!twicord show-category` または `showcategory` / `show-category` / `showcat` — 現在のデフォルトカテゴリを表示します。
@@ -27,6 +28,7 @@
 - `!twicord archive [@User|UserId]` または `arch` — 自分（またはオーナーによる指定）のチャンネルをアーカイブします。
 - `!twicord delete <#channel|ChannelId|@User|UserId>` または `del` / `remove` / `rm` — チャンネルと関連ロールを削除します。
 - `!twicord lang <ja|en>` または `language` / `locale` — 自分の表示言語を設定します。
+- `!twicord help` または `h` / `?` — 利用可能なコマンドと使い方を表示します（ヘルプ）。
 
 ## インストールと実行
 
