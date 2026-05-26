@@ -930,6 +930,23 @@ async function requestToJoin(message, targetUserId) {
 
     const existingRequest = Object.values(target.requests).find((request) => request?.requesterId === message.author.id && request.status !== "expired");
     if (existingRequest) {
+        if (existingRequest.status === "approved") {
+            await channel.permissionOverwrites.edit(message.author.id, {
+                ViewChannel: true,
+                ReadMessageHistory: true,
+                SendMessages: false,
+                AttachFiles: false,
+                EmbedLinks: false,
+                AddReactions: false,
+                SendMessagesInThreads: false,
+                CreatePublicThreads: false,
+                CreatePrivateThreads: false
+            }).catch((e) => logger.error('requestToJoin: reapply approved overwrite', e));
+
+            await message.reply(tUser(guild.id, message.author.id, "already_approved"));
+            return;
+        }
+
         await message.reply(tUser(guild.id, message.author.id, "already_requested"));
         return;
     }
