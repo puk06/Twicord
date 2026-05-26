@@ -26,6 +26,9 @@ const PREFIX = "!twicord";
 const APPROVE_EMOJI = "✅";
 const REJECT_EMOJI = "❌";
 
+// 最大 description 文字数
+const DESCRIPTION_MAX = 70;
+
 function getTotalManagedChannels() {
     let total = 0;
     for (const g of Object.values(state.guilds || {})) {
@@ -317,6 +320,11 @@ async function handleDescriptionCommand(message, rawDescription) {
     const description = rawDescription?.trim();
     if (!description) {
         await message.reply(t(locale, "usage_description", { prefix: PREFIX }));
+        return;
+    }
+
+    if (description.length > DESCRIPTION_MAX) {
+        await message.reply(t(locale, "description_too_long", { max: DESCRIPTION_MAX }));
         return;
     }
 
