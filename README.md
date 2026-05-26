@@ -2,7 +2,7 @@
 
 Simple Discord private-channel management bot (Node.js / discord.js)
 
-Twicord allows server members to create and manage per-user private text channels. Key features include channel creation, join request workflow, archiving, deletion, and a server-owner configurable default category.
+Twicord allows server members to create and manage per-user private text channels. Key features include channel creation, join request workflow, member removal, archiving, deletion, and a server-owner configurable default category.
 
 Features
 - Create your private channel: `!twicord create`
@@ -26,8 +26,9 @@ Commands (prefix: `!twicord`)
 - `!twicord show-category` or `showcategory` / `show-category` / `showcat` — Show current default category.
 - `!twicord setpublicchannel [#channel|ChannelId]` or `set-public-channel` / `setpublic` / `set-public` — (Owner) Set the channel used for public posts. If omitted, current channel is used.
 - `!twicord public` or `publish` / `share` — Reply to a message inside a managed channel, then run this to forward it to the configured public channel.
+- `!twicord remove <@User|UserId>` or `kick` / `rm` / `revoke` — Remove a user from the channel, revoke their active access, and make the channel hidden to them again.
 - `!twicord archive [@User|UserId]` or `arch` — Archive your channel (owner may archive another user's channel).
-- `!twicord delete <#channel|ChannelId|@User|UserId>` or `del` / `remove` / `rm` — Delete a channel and its role.
+- `!twicord delete <#channel|ChannelId|@User|UserId>` or `del` — Delete a channel and its role. This is separate from `remove`.
 - `!twicord lang <ja|en>` or `language` / `locale` — Set your display language (per-user).
 - `!twicord help` or `h` / `?` — Show the bot help embed with available commands and usage.
 

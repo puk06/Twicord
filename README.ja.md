@@ -2,7 +2,7 @@
 
 > シンプルな Discord プライベートチャンネル管理ボット（Node.js / discord.js）
 
-このリポジトリは、サーバー内でユーザーごとに専用テキストチャンネルを作成・管理できる Discord ボット `Twicord` の実装です。主な機能はユーザー専用チャンネルの作成、参加申請の管理、アーカイブと削除、デフォルトカテゴリの設定などです。
+このリポジトリは、サーバー内でユーザーごとに専用テキストチャンネルを作成・管理できる Discord ボット `Twicord` の実装です。主な機能はユーザー専用チャンネルの作成、参加申請の管理、メンバーの除外、アーカイブと削除、デフォルトカテゴリの設定などです。
 
 **主な機能**
 - 自分専用のプライベートチャンネルを作成（`!twicord create`）
@@ -26,8 +26,9 @@
 - `!twicord show-category` または `showcategory` / `show-category` / `showcat` — 現在のデフォルトカテゴリを表示します。
 - `!twicord setpublicchannel [#channel|ChannelId]` または `set-public-channel` / `setpublic` / `set-public` — サーバーオーナーのみ。全体公開チャンネルを設定します（省略時は現在のチャンネル）。
 - `!twicord public` または `publish` / `share` — 管理対象チャンネル内で、公開したいメッセージに返信して実行すると全体公開チャンネルへ転送します。
+- `!twicord remove <@User|UserId>` または `kick` / `rm` / `revoke` — チャンネルから指定ユーザーを外します。外されたユーザーは再びチャンネルを見られなくなり、必要なら再申請できます。
 - `!twicord archive [@User|UserId]` または `arch` — 自分（またはオーナーによる指定）のチャンネルをアーカイブします。
-- `!twicord delete <#channel|ChannelId|@User|UserId>` または `del` / `remove` / `rm` — チャンネルと関連ロールを削除します。
+- `!twicord delete <#channel|ChannelId|@User|UserId>` または `del` — チャンネルと関連ロールを削除します。`remove` とは別の削除専用コマンドです。
 - `!twicord lang <ja|en>` または `language` / `locale` — 自分の表示言語を設定します。
 - `!twicord help` または `h` / `?` — 利用可能なコマンドと使い方を表示します（ヘルプ）。
 

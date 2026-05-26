@@ -104,6 +104,17 @@ function buildTwicordCommand() {
         )
         .addSubcommand((subcommand) =>
             subcommand
+                .setName("remove")
+                .setDescription("Remove a user from a managed channel")
+                .addUserOption((option) =>
+                    option
+                        .setName("user")
+                        .setDescription("User to remove from the channel")
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand((subcommand) =>
+            subcommand
                 .setName("delete")
                 .setDescription("Delete a managed channel or an explicit channel ID")
                 .addStringOption((option) =>

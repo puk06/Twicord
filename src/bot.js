@@ -136,6 +136,72 @@ function buildRequestEmbed(locale, requester, channel) {
 }
 
 /**
+ * @param {RequestEntry | null | undefined} request
+ * @returns {boolean}
+ */
+function isActiveRequest(request) {
+    return request?.status === "pending" || request?.status === "approved";
+}
+
+/**
+ * @param {ChannelEntry} entry
+ * @param {string} requesterId
+ * @returns {RequestEntry | null}
+ */
+function getActiveRequestForUser(entry, requesterId) {
+    return Object.values(entry.requests || {}).find((request) => request?.requesterId === requesterId && isActiveRequest(request)) || null;
+}
+
+/**
+ * @param {ChannelEntry} entry
+ * @param {string} requesterId
+ * @returns {boolean}
+ */
+function revokeUserRequests(entry, requesterId) {
+    let changed = false;
+    for (const request of Object.values(entry.requests || {})) {
+        if (request?.requesterId === requesterId && isActiveRequest(request)) {
+            request.status = "revoked";
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+/**
+ * @param {GuildChannel | TextChannel} channel
+ * @param {string} userId
+ * @param {boolean} canView
+ */
+async function setChannelMemberVisibility(channel, userId, canView) {
+    const overwrite = canView
+        ? {
+            ViewChannel: true,
+            ReadMessageHistory: true,
+            SendMessages: false,
+            AttachFiles: false,
+            EmbedLinks: false,
+            AddReactions: false,
+            SendMessagesInThreads: false,
+            CreatePublicThreads: false,
+            CreatePrivateThreads: false
+        }
+        : {
+            ViewChannel: false,
+            ReadMessageHistory: false,
+            SendMessages: false,
+            AttachFiles: false,
+            EmbedLinks: false,
+            AddReactions: false,
+            SendMessagesInThreads: false,
+            CreatePublicThreads: false,
+            CreatePrivateThreads: false
+        };
+
+    await channel.permissionOverwrites.edit(userId, overwrite).catch((e) => logger.error('setChannelMemberVisibility', e));
+}
+
+/**
  * @param {string} locale
  */
 function buildHelpEmbed(locale) {
@@ -154,6 +220,7 @@ function buildHelpEmbed(locale) {
             { name: `${PREFIX} setpublicchannel [#channel|ChannelId] (Owner)`, value: t(locale, "help_set_public_channel", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} public (reply)`, value: t(locale, "help_public", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} archive [@User|UserId]`, value: t(locale, "help_archive"), inline: false },
+            { name: `${PREFIX} remove <@User|UserId>`, value: t(locale, "help_remove", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} delete <#channel|ChannelId|@User|UserId>`, value: t(locale, "help_delete"), inline: false },
             { name: `${PREFIX} lang <ja|en>`, value: t(locale, "help_lang", { prefix: PREFIX }), inline: false }
         )
@@ -504,6 +571,12 @@ async function handleSlashInteraction(client, interaction) {
             return;
         }
 
+        if (subcommand === "remove") {
+            const targetUser = interaction.options.getUser("user", true);
+            await removeChannelMember(message, targetUser.id);
+            return;
+        }
+
         if (subcommand === "delete") {
             const raw = interaction.options.getString("target", true);
             const channelIdArg = utils.parseChannelId(raw);
@@ -667,6 +740,18 @@ function attachHandlers(client) {
             return;
         }
 
+        // remove member from managed channel
+        if (["remove", "rm", "kick", "revoke"].includes(sub)) {
+            const targetUserId = utils.parseUserId(arg) || (parts.length >= 3 ? utils.parseUserId(parts.slice(2).join(" ")) : null);
+            if (!targetUserId) {
+                await message.reply(tUser(message.guild.id, message.author.id, "usage_remove"));
+                return;
+            }
+
+            await removeChannelMember(message, targetUserId);
+            return;
+        }
+
         // list
         if (["list", "ls"].includes(sub)) {
             await listPrivateChannels(message, arg);
@@ -767,7 +852,7 @@ function attachHandlers(client) {
         }
 
         // delete / remove
-        if (["delete", "del", "remove", "rm"].includes(sub)) {
+        if (["delete", "del"].includes(sub)) {
             const channelIdArg = utils.parseChannelId(arg) || (parts.length >= 3 ? utils.parseChannelId(parts.slice(2).join(" ")) : null);
             const targetUserId = utils.parseUserId(arg) || (parts.length >= 3 ? utils.parseUserId(parts.slice(2).join(" ")) : null);
 
@@ -928,20 +1013,10 @@ async function requestToJoin(message, targetUserId) {
         return;
     }
 
-    const existingRequest = Object.values(target.requests).find((request) => request?.requesterId === message.author.id && request.status !== "expired");
+    const existingRequest = getActiveRequestForUser(target, message.author.id);
     if (existingRequest) {
         if (existingRequest.status === "approved") {
-            await channel.permissionOverwrites.edit(message.author.id, {
-                ViewChannel: true,
-                ReadMessageHistory: true,
-                SendMessages: false,
-                AttachFiles: false,
-                EmbedLinks: false,
-                AddReactions: false,
-                SendMessagesInThreads: false,
-                CreatePublicThreads: false,
-                CreatePrivateThreads: false
-            }).catch((e) => logger.error('requestToJoin: reapply approved overwrite', e));
+            await setChannelMemberVisibility(channel, message.author.id, true);
 
             await message.reply(tUser(guild.id, message.author.id, "already_approved"));
             return;
@@ -1257,17 +1332,7 @@ async function handleRequestReaction(reaction, user) {
     }
 
     if (emoji === APPROVE_EMOJI) {
-        await message.channel.permissionOverwrites.edit(requesterMember.id, {
-            ViewChannel: true,
-            ReadMessageHistory: true,
-            SendMessages: false,
-            AttachFiles: false,
-            EmbedLinks: false,
-            AddReactions: false,
-            SendMessagesInThreads: false,
-            CreatePublicThreads: false,
-            CreatePrivateThreads: false
-        }).catch((e) => logger.error('handleRequestReaction: edit overwrite requester', e));
+        await setChannelMemberVisibility(message.channel, requesterMember.id, true);
         request.status = "approved";
         await message
             .edit({
@@ -1398,6 +1463,48 @@ async function publishReplyToPublicChannel(message) {
 
     const postedLink = sent ? (sent.url || `https://discord.com/channels/${guild.id}/${publicChannel.id}/${sent.id}`) : null;
     await message.reply(t(locale, "public_sent", { url: postedLink }));
+}
+
+/**
+ * @param {DiscordMessage} message
+ * @param {string} targetUserId
+ */
+async function removeChannelMember(message, targetUserId) {
+    const guild = message.guild;
+    if (!guild) return;
+
+    const locale = getUserLocale(guild.id, message.author.id);
+    const guildState = getGuildState(guild.id);
+    const entry = getManagedChannelEntryByChannelId(guildState, message.channel.id);
+
+    if (!entry) {
+        await message.reply(t(locale, "remove_not_in_managed_channel"));
+        return;
+    }
+
+    const isOwner = message.author.id === guild.ownerId;
+    if (message.author.id !== entry.ownerId && !isOwner) {
+        await message.reply(t(locale, "no_remove_permission"));
+        return;
+    }
+
+    if (targetUserId === entry.ownerId) {
+        await message.reply(t(locale, "cannot_remove_owner"));
+        return;
+    }
+
+    const channel = await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('removeChannelMember: fetch channel', e); return null; });
+    if (!channel || channel.type !== ChannelType.GuildText) {
+        await message.reply(t(locale, "target_channel_not_found_admin"));
+        return;
+    }
+
+    const targetMember = await guild.members.fetch(targetUserId).catch(() => null);
+    revokeUserRequests(entry, targetUserId);
+    await saveState();
+
+    await setChannelMemberVisibility(channel, targetUserId, false);
+    await message.reply(t(locale, "remove_success", { user: targetMember ? `${targetMember.user}` : `<@${targetUserId}>` }));
 }
 
 /**
