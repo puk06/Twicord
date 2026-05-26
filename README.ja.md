@@ -7,7 +7,7 @@
 **主な機能**
 - 自分専用のプライベートチャンネルを作成（`!twicord create`）
 - 他ユーザーのチャンネルへ参加申請を送信・承認・却下（リアクションで操作）
-- 作成済みチャンネル一覧表示（`!twicord list`）
+- 作成済みチャンネル一覧表示（`!twicord list [page]`）
 - 管理対象チャンネル内で返信したメッセージを全体公開チャンネルへ転送（`!twicord public`）
 - チャンネルのアーカイブ（書き込み禁止）と削除
 - サーバーオーナー向けにデフォルトカテゴリを設定（`!twicord set-category`）
@@ -20,7 +20,7 @@
 - `!twicord request <@User|UserId>` または `rq` / `apply` — 指定ユーザーのチャンネルに参加申請を送信します。
 - `!twicord rename <new-name>` または `setname` — 管理対象の自分のチャンネル名を変更します。
 - `!twicord description <text>` — 管理対象チャンネルの説明文を設定・更新します（オーナー権限）。
-- `!twicord list` または `ls` — 作成済みのプライベートチャンネル一覧を表示します。
+- `!twicord list [page]` または `ls [page]` — 作成済みのプライベートチャンネル一覧を 10 件ずつ表示します。
 - `!twicord set-category <CategoryId>` または `setcategory` / `set-category` / `setcat` — サーバーオーナーのみ。デフォルトカテゴリを設定します。
 - `!twicord show-category` または `showcategory` / `show-category` / `showcat` — 現在のデフォルトカテゴリを表示します。
 - `!twicord setpublicchannel [#channel|ChannelId]` または `set-public-channel` / `setpublic` / `set-public` — サーバーオーナーのみ。全体公開チャンネルを設定します（省略時は現在のチャンネル）。

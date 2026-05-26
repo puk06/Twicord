@@ -7,7 +7,7 @@ Twicord allows server members to create and manage per-user private text channel
 Features
 - Create your private channel: `!twicord create`
 - Request to join another user's channel (approve/deny via reactions)
-- List created private channels: `!twicord list`
+- List created private channels: `!twicord list [page]`
 - Publish a replied message from a managed channel to a server-wide public channel: `!twicord public`
 - Archive or delete channels
 - Server owner can set the default category: `!twicord set-category`
@@ -20,7 +20,7 @@ Commands (prefix: `!twicord`)
 - `!twicord request <@User|UserId>` or `rq` / `apply` — Send a join request to the specified user's channel.
 - `!twicord rename <new-name>` or `setname` — Rename the managed private channel you own.
 - `!twicord description <text>` — Set or update the description for your managed private channel (owner only).
-- `!twicord list` or `ls` — Show all created private channels.
+- `!twicord list [page]` or `ls [page]` — Show created private channels, 10 per page.
 - `!twicord set-category <CategoryId>` or `setcategory` / `set-category` / `setcat` — (Owner) Set the default category used when creating channels.
 - `!twicord show-category` or `showcategory` / `show-category` / `showcat` — Show current default category.
 - `!twicord setpublicchannel [#channel|ChannelId]` or `set-public-channel` / `setpublic` / `set-public` — (Owner) Set the channel used for public posts. If omitted, current channel is used.

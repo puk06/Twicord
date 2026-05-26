@@ -148,7 +148,7 @@ function buildHelpEmbed(locale) {
             { name: `${PREFIX} request <@User|UserId>`, value: t(locale, "help_request", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} rename <new-name>`, value: t(locale, "help_rename", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} description <text>`, value: t(locale, "help_description", { prefix: PREFIX }), inline: false },
-            { name: `${PREFIX} list`, value: t(locale, "help_list"), inline: false },
+            { name: `${PREFIX} list`, value: t(locale, "help_list", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} set-category <CategoryId> (Owner)`, value: t(locale, "help_set_category", { prefix: PREFIX }), inline: false },
             { name: `${PREFIX} show-category`, value: t(locale, "help_show_category"), inline: false },
             { name: `${PREFIX} setpublicchannel [#channel|ChannelId] (Owner)`, value: t(locale, "help_set_public_channel", { prefix: PREFIX }), inline: false },
@@ -385,7 +385,7 @@ function attachHandlers(client) {
 
         // list
         if (["list", "ls"].includes(sub)) {
-            await listPrivateChannels(message);
+            await listPrivateChannels(message, arg);
             return;
         }
 
@@ -667,8 +667,9 @@ async function requestToJoin(message, targetUserId) {
 
 /**
  * @param {DiscordMessage} message
+ * @param {string|null} pageArg
  */
-async function listPrivateChannels(message) {
+async function listPrivateChannels(message, pageArg) {
     const guild = message.guild;
     if (!guild) return;
 
@@ -680,12 +681,29 @@ async function listPrivateChannels(message) {
         return;
     }
 
+    const pageSize = 10;
+    const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
+    const page = pageArg ? Number.parseInt(pageArg, 10) : 1;
+
+    if (!Number.isInteger(page) || page < 1) {
+        await message.reply(t(locale, "list_page_invalid", { prefix: PREFIX }));
+        return;
+    }
+
+    if (page > totalPages) {
+        await message.reply(t(locale, "list_page_out_of_range", { page, totalPages, prefix: PREFIX }));
+        return;
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(t(locale, "created_list_title"))
         .setColor(0x00b0f4)
-        .setTimestamp();
+        .setTimestamp()
+        .setFooter({ text: t(locale, "list_page_footer", { page, totalPages }) });
 
-    for (const entry of entries) {
+    const pageEntries = entries.slice((page - 1) * pageSize, page * pageSize);
+
+    for (const entry of pageEntries) {
         const channel = guild.channels.cache.get(entry.channelId) || await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('listPrivateChannels: fetch channel', e); return null; });
         const channelLabel = channel ? `${channel}` : t(locale, "channel_id_label", { channelId: entry.channelId });
         const ownerMention = `<@${entry.ownerId}>`;
