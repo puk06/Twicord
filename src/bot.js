@@ -71,6 +71,54 @@ async function updateActivity(client) {
 }
 
 /**
+ * Delete legacy managed roles tracked in state and clear roleId references.
+ * @param {DiscordClient} client
+ */
+async function removeLegacyManagedRoles(client) {
+    let changed = false;
+
+    for (const [guildId, guildState] of Object.entries(state.guilds || {})) {
+        const roleIds = new Set();
+        for (const entry of Object.values(guildState.channels || {})) {
+            if (entry?.roleId) roleIds.add(entry.roleId);
+        }
+        for (const entry of Object.values(guildState.archives || {})) {
+            if (entry?.roleId) roleIds.add(entry.roleId);
+        }
+
+        if (!roleIds.size) continue;
+
+        const guild = client.guilds.cache.get(guildId) || await client.guilds.fetch(guildId).catch((e) => { logger.error('removeLegacyManagedRoles: fetch guild', e); return null; });
+        if (!guild) continue;
+
+        for (const roleId of roleIds) {
+            const role = await guild.roles.fetch(roleId).catch((e) => { logger.error('removeLegacyManagedRoles: fetch role', e); return null; });
+            if (!role) continue;
+            try {
+                await role.delete().catch((e) => logger.error('removeLegacyManagedRoles: delete role', e));
+            } catch (e) { logger.error('removeLegacyManagedRoles: delete role exception', e); }
+        }
+
+        for (const entry of Object.values(guildState.channels || {})) {
+            if (entry?.roleId != null) {
+                entry.roleId = null;
+                changed = true;
+            }
+        }
+        for (const entry of Object.values(guildState.archives || {})) {
+            if (entry?.roleId != null) {
+                entry.roleId = null;
+                changed = true;
+            }
+        }
+    }
+
+    if (changed) {
+        await saveState();
+    }
+}
+
+/**
  * @param {string} locale
  * @param {DiscordUser} requester
  * @param {GuildChannel | TextChannel} channel
@@ -218,6 +266,10 @@ function attachHandlers(client) {
     client.on(Events.ClientReady, async () => {
         await loadState();
         console.log(`Logged in as ${client.user.tag}`);
+        // migrate away from legacy role-based access control
+        try {
+            await removeLegacyManagedRoles(client);
+        } catch (e) { logger.error('removeLegacyManagedRoles', e); }
         // synchronize managed channels' permission overwrites at startup
         try {
             await updateManagedChannelsPermissions(client);
@@ -497,23 +549,6 @@ async function createPrivateChannel(client, message) {
     const member = await guild.members.fetch(message.author.id);
     const channelNameBase = utils.normalizeChannelName(`${message.author.username}-${message.author.id.slice(-4)}`);
 
-    let role = null;
-    try {
-        role = await guild.roles.create({
-            name: `${message.author.username} channel`,
-            hoist: false,
-            mentionable: false,
-            permissions: [
-                PermissionsBitField.Flags.ViewChannel,
-                PermissionsBitField.Flags.ReadMessageHistory
-            ]
-        });
-    } catch (e) {
-        logger.error('createPrivateChannel: create role', e);
-        await message.reply(tUser(guild.id, message.author.id, "create_failed", { reason: e?.message || String(e) }));
-        return;
-    }
-
     let channel = null;
     try {
         channel = await guild.channels.create({
@@ -524,22 +559,6 @@ async function createPrivateChannel(client, message) {
             {
                 id: guild.roles.everyone.id,
                 deny: [PermissionsBitField.Flags.ViewChannel]
-            },
-            {
-                id: role.id,
-                allow: [
-                    PermissionsBitField.Flags.ViewChannel,
-                    PermissionsBitField.Flags.ReadMessageHistory
-                ],
-                deny: [
-                    PermissionsBitField.Flags.SendMessages,
-                    PermissionsBitField.Flags.AttachFiles,
-                    PermissionsBitField.Flags.EmbedLinks,
-                    PermissionsBitField.Flags.AddReactions,
-                    PermissionsBitField.Flags.SendMessagesInThreads,
-                    PermissionsBitField.Flags.CreatePublicThreads,
-                    PermissionsBitField.Flags.CreatePrivateThreads
-                ]
             },
             {
                 id: member.id,
@@ -577,20 +596,14 @@ async function createPrivateChannel(client, message) {
     });
     } catch (e) {
         logger.error('createPrivateChannel: create channel', e);
-        // cleanup role if channel creation failed
-        if (role) {
-            try { await role.delete().catch(() => null); } catch (_) { /* ignore */ }
-        }
         await message.reply(tUser(guild.id, message.author.id, "create_failed", { reason: e?.message || String(e) }));
         return;
     }
 
-    await member.roles.add(role.id).catch((e) => logger.error('createPrivateChannel: add role', e));
-
     guildState.channels[message.author.id] = {
         guildId: guild.id,
         ownerId: message.author.id,
-        roleId: role.id,
+        roleId: null,
         channelId: channel.id,
         categoryId: category.id,
         description: "",
@@ -713,7 +726,6 @@ async function archivePrivateChannel(message, targetUserId) {
     }
 
     const channel = await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('archivePrivateChannel: fetch channel', e); return null; });
-    const role = await guild.roles.fetch(entry.roleId).catch((e) => { logger.error('archivePrivateChannel: fetch role', e); return null; });
 
     if (!channel) {
         await message.reply(tUser(guild.id, message.author.id, "target_channel_not_found_admin"));
@@ -722,17 +734,27 @@ async function archivePrivateChannel(message, targetUserId) {
 
     const suffix = "-archived";
     await utils.safeRenameChannel(channel, suffix);
-    if (role) await utils.safeRenameRole(role, `${suffix}-${Date.now().toString().slice(-4)}`);
-
-    if (role) {
-        try {
-            await channel.permissionOverwrites.edit(role.id, { SendMessages: false, ViewChannel: true }).catch((e) => logger.error('archivePrivateChannel: edit overwrite role', e));
-        } catch (e) { logger.error('archivePrivateChannel: edit overwrite role exception', e); }
-    }
 
     try {
         await channel.permissionOverwrites.edit(entry.ownerId, { SendMessages: false, AttachFiles: false, AddReactions: false }).catch((e) => logger.error('archivePrivateChannel: edit overwrite owner', e));
     } catch (e) { logger.error('archivePrivateChannel: edit overwrite owner exception', e); }
+
+    const approvedRequesters = Object.values(entry.requests || {}).filter((r) => r?.status === "approved").map((r) => r.requesterId);
+    for (const requesterId of approvedRequesters) {
+        try {
+            await channel.permissionOverwrites.edit(requesterId, {
+                ViewChannel: true,
+                ReadMessageHistory: true,
+                SendMessages: false,
+                AttachFiles: false,
+                EmbedLinks: false,
+                AddReactions: false,
+                SendMessagesInThreads: false,
+                CreatePublicThreads: false,
+                CreatePrivateThreads: false
+            }).catch((e) => logger.error('archivePrivateChannel: edit overwrite requester', e));
+        } catch (e) { logger.error('archivePrivateChannel: edit overwrite requester exception', e); }
+    }
 
     guildState.archives[ownerId] = Object.assign({}, entry, { archivedAt: Date.now() });
     delete guildState.channels[ownerId];
@@ -912,14 +934,18 @@ async function handleRequestReaction(reaction, user) {
         return;
     }
 
-    const role = await message.guild.roles.fetch(ownerEntry.roleId).catch((e) => { logger.error('handleRequestReaction: fetch role', e); return null; });
-    if (!role) {
-        await message.channel.send(t(locale, "role_not_found")).catch((e) => logger.error('handleRequestReaction: send role_not_found', e));
-        return;
-    }
-
     if (emoji === APPROVE_EMOJI) {
-        await requesterMember.roles.add(role.id).catch((e) => logger.error('handleRequestReaction: add role to requester', e));
+        await message.channel.permissionOverwrites.edit(requesterMember.id, {
+            ViewChannel: true,
+            ReadMessageHistory: true,
+            SendMessages: false,
+            AttachFiles: false,
+            EmbedLinks: false,
+            AddReactions: false,
+            SendMessagesInThreads: false,
+            CreatePublicThreads: false,
+            CreatePrivateThreads: false
+        }).catch((e) => logger.error('handleRequestReaction: edit overwrite requester', e));
         request.status = "approved";
         await message
             .edit({
@@ -1067,31 +1093,13 @@ async function updateManagedChannelsPermissions(client) {
                     const channel = guild.channels.cache.get(entry.channelId) || await guild.channels.fetch(entry.channelId).catch(() => null);
                     if (!channel || channel.type !== ChannelType.GuildText) continue;
 
-                    // fetch role and member references where possible
-                    const role = entry.roleId ? await guild.roles.fetch(entry.roleId).catch(() => null) : null;
                     const ownerMember = entry.ownerId ? await guild.members.fetch(entry.ownerId).catch(() => null) : null;
+                    const approvedRequesters = Object.values(entry.requests || {}).filter((r) => r?.status === "approved").map((r) => r.requesterId);
 
                     // everyone: deny view
                     try {
                         await channel.permissionOverwrites.edit(guild.roles.everyone.id, { ViewChannel: false }).catch(() => null);
                     } catch (e) { /* ignore */ }
-
-                    // role: allow view/read, deny send/attach/embed/reactions
-                    if (role) {
-                        try {
-                            await channel.permissionOverwrites.edit(role.id, {
-                                ViewChannel: true,
-                                ReadMessageHistory: true,
-                                SendMessages: false,
-                                AttachFiles: false,
-                                EmbedLinks: false,
-                                AddReactions: false,
-                                SendMessagesInThreads: false,
-                                CreatePublicThreads: false,
-                                CreatePrivateThreads: false
-                            }).catch(() => null);
-                        } catch (e) { /* ignore */ }
-                    }
 
                     // owner: allow send/read/etc
                     if (ownerMember) {
@@ -1103,9 +1111,26 @@ async function updateManagedChannelsPermissions(client) {
                                 AttachFiles: true,
                                 EmbedLinks: true,
                                 AddReactions: true,
-                                SendMessagesInThreads: true,
-                                CreatePublicThreads: true,
-                                CreatePrivateThreads: true
+                                SendMessagesInThreads: false,
+                                CreatePublicThreads: false,
+                                CreatePrivateThreads: false
+                            }).catch(() => null);
+                        } catch (e) { /* ignore */ }
+                    }
+
+                    // approved requester members: allow read only
+                    for (const requesterId of approvedRequesters) {
+                        try {
+                            await channel.permissionOverwrites.edit(requesterId, {
+                                ViewChannel: true,
+                                ReadMessageHistory: true,
+                                SendMessages: false,
+                                AttachFiles: false,
+                                EmbedLinks: false,
+                                AddReactions: false,
+                                SendMessagesInThreads: false,
+                                CreatePublicThreads: false,
+                                CreatePrivateThreads: false
                             }).catch(() => null);
                         } catch (e) { /* ignore */ }
                     }
@@ -1125,6 +1150,14 @@ async function updateManagedChannelsPermissions(client) {
                         }).catch(() => null);
                     } catch (e) { /* ignore */ }
 
+                    // cleanup stale legacy role overwrite if the role is already removed
+                    if (entry.roleId) {
+                        try {
+                            await channel.permissionOverwrites.delete(entry.roleId).catch(() => null);
+                        } catch (e) { /* ignore */ }
+                        entry.roleId = null;
+                    }
+
                 } catch (e) {
                     logger.error('updateManagedChannelsPermissions: per-channel', e);
                 }
@@ -1133,6 +1166,8 @@ async function updateManagedChannelsPermissions(client) {
             logger.error('updateManagedChannelsPermissions: per-guild', e);
         }
     }
+
+    await saveState().catch((e) => logger.error('updateManagedChannelsPermissions: saveState', e));
 }
 
 module.exports = { attachHandlers };
