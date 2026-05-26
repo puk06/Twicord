@@ -584,7 +584,8 @@ async function createPrivateChannel(client, message) {
                     PermissionsBitField.Flags.ReadMessageHistory,
                     PermissionsBitField.Flags.ManageMessages,
                     PermissionsBitField.Flags.EmbedLinks,
-                    PermissionsBitField.Flags.AddReactions
+                    PermissionsBitField.Flags.AddReactions,
+                    PermissionsBitField.Flags.PinMessages
                 ],
                 deny: [
                     PermissionsBitField.Flags.SendMessagesInThreads,
@@ -1142,6 +1143,7 @@ async function updateManagedChannelsPermissions(client) {
                             SendMessages: true,
                             ReadMessageHistory: true,
                             ManageMessages: true,
+                            PinMessages: true,
                             EmbedLinks: true,
                             AddReactions: true,
                             SendMessagesInThreads: false,
