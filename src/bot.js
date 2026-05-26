@@ -362,9 +362,7 @@ function createInteractionMessage(interaction) {
         reference: null,
         async reply(payload) {
             await interaction.editReply(payload);
-            return {
-                edit: async (nextPayload) => interaction.editReply(nextPayload)
-            };
+            return interaction.fetchReply();
         }
     };
 }
