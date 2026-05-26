@@ -1129,6 +1129,29 @@ async function archivePrivateChannel(message, targetUserId) {
         return;
     }
 
+    // 確認フロー: リアクションで承認を待つ
+    const locale = getUserLocale(guild.id, message.author.id);
+    const confirmMsg = await message.reply({ embeds: [
+        new EmbedBuilder().setDescription(tUser(guild.id, message.author.id, "confirm_archive", { channel: `${channel}` }))
+    ]}).catch((e) => { logger.error('archivePrivateChannel: send confirm', e); return null; });
+    if (!confirmMsg) return;
+    await confirmMsg.react('✅').catch(() => {});
+    await confirmMsg.react('❌').catch(() => {});
+    let confirmed = false;
+    try {
+        const filter = (r, u) => (['✅', '❌'].includes(r.emoji.name)) && u.id === message.author.id;
+        const collected = await confirmMsg.awaitReactions({ filter, max: 1, time: 30000, errors: ['time'] });
+        const emoji = collected.first().emoji.name;
+        if (emoji === '✅') confirmed = true;
+    } catch (e) {
+        await message.reply(tUser(guild.id, message.author.id, "confirm_timeout"));
+        return;
+    }
+    if (!confirmed) {
+        await message.reply(tUser(guild.id, message.author.id, "confirm_cancelled"));
+        return;
+    }
+
     const suffix = "-archived";
     await utils.safeRenameChannel(channel, suffix);
 
@@ -1181,6 +1204,29 @@ async function deletePrivateChannel(message, targetUserId) {
     const isOwner = message.author.id === message.guild.ownerId;
     if (message.author.id !== entry.ownerId && !isOwner) {
         await message.reply(tUser(guild.id, message.author.id, "no_delete_permission"));
+        return;
+    }
+
+    // 確認フロー: リアクションで承認を待つ
+    const locale = getUserLocale(guild.id, message.author.id);
+    const confirmMsg = await message.reply({ embeds: [
+        new EmbedBuilder().setDescription(tUser(guild.id, message.author.id, "confirm_delete", { channel: entry.channelId ? `<#${entry.channelId}>` : entry.roleId ? `<@&${entry.roleId}>` : "" }))
+    ]}).catch((e) => { logger.error('deletePrivateChannel: send confirm', e); return null; });
+    if (!confirmMsg) return;
+    await confirmMsg.react('✅').catch(() => {});
+    await confirmMsg.react('❌').catch(() => {});
+    let confirmed = false;
+    try {
+        const filter = (r, u) => (['✅', '❌'].includes(r.emoji.name)) && u.id === message.author.id;
+        const collected = await confirmMsg.awaitReactions({ filter, max: 1, time: 30000, errors: ['time'] });
+        const emoji = collected.first().emoji.name;
+        if (emoji === '✅') confirmed = true;
+    } catch (e) {
+        await message.reply(tUser(guild.id, message.author.id, "confirm_timeout"));
+        return;
+    }
+    if (!confirmed) {
+        await message.reply(tUser(guild.id, message.author.id, "confirm_cancelled"));
         return;
     }
 
@@ -1245,6 +1291,27 @@ async function deleteByChannelId(message, channelId) {
         if (message.author.id === message.guild.ownerId) {
             const raw = await guild.channels.fetch(channelId).catch((e) => { logger.error('deleteByChannelId: fetch raw channel', e); return null; });
             if (raw) {
+                // 確認フロー: リアクションで承認を待つ (サーバーオーナーが実行)
+                const confirmMsg = await message.reply({ embeds: [
+                    new EmbedBuilder().setDescription(tUser(guild.id, message.author.id, "confirm_delete", { channel: `<#${channelId}>` }))
+                ]}).catch((e) => { logger.error('deleteByChannelId: send confirm', e); return null; });
+                if (!confirmMsg) return;
+                await confirmMsg.react('✅').catch(() => {});
+                await confirmMsg.react('❌').catch(() => {});
+                let confirmed = false;
+                try {
+                    const filter = (r, u) => (['✅', '❌'].includes(r.emoji.name)) && u.id === message.author.id;
+                    const collected = await confirmMsg.awaitReactions({ filter, max: 1, time: 30000, errors: ['time'] });
+                    const emoji = collected.first().emoji.name;
+                    if (emoji === '✅') confirmed = true;
+                } catch (e) {
+                    await message.reply(tUser(guild.id, message.author.id, "confirm_timeout"));
+                    return;
+                }
+                if (!confirmed) {
+                    await message.reply(tUser(guild.id, message.author.id, "confirm_cancelled"));
+                    return;
+                }
                 try {
                     await raw.delete().catch((e) => logger.error('deleteByChannelId: delete raw channel', e));
                 } catch (e) { logger.error('deleteByChannelId: delete raw channel exception', e); }
