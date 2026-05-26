@@ -7,6 +7,7 @@ Twicord allows server members to create and manage per-user private text channel
 Features
 - Create your private channel: `!twicord create`
 - Request to join another user's channel (approve/deny via reactions)
+- Slash command support: `/twicord`
 - List created private channels: `!twicord list [page]`
 - Publish a replied message from a managed channel to a server-wide public channel: `!twicord public`
 - Archive or delete channels
@@ -46,7 +47,21 @@ npm install
 DISCORD_BOT_TOKEN=your_bot_token_here
 ```
 
-5. Start the bot:
+5. Add your application ID:
+
+```
+DISCORD_APPLICATION_ID=your_application_id
+```
+
+6. Register slash commands:
+
+```
+npm run register:commands
+```
+
+	Global slash commands can take a little while to appear in Discord.
+
+7. Start the bot:
 
 ```
 npm start
@@ -60,6 +75,7 @@ Developer notes
 
 - Entry point: `src/index.js`
 - Main modules: `src/bot.js`, `src/lib/state.js`, `src/lib/utils.js`, `src/lib/i18n.js`
+- Slash command registration: `src/commands.js`, `src/register-commands.js`
 - Dependencies: `discord.js`, `fs-extra`, `dotenv`
 
 Internationalization

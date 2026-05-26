@@ -7,6 +7,7 @@
 **主な機能**
 - 自分専用のプライベートチャンネルを作成（`!twicord create`）
 - 他ユーザーのチャンネルへ参加申請を送信・承認・却下（リアクションで操作）
+- スラッシュコマンド対応（`/twicord`）
 - 作成済みチャンネル一覧表示（`!twicord list [page]`）
 - 管理対象チャンネル内で返信したメッセージを全体公開チャンネルへ転送（`!twicord public`）
 - チャンネルのアーカイブ（書き込み禁止）と削除
@@ -46,7 +47,21 @@ npm install
 DISCORD_BOT_TOKEN=your_bot_token_here
 ```
 
-4. ボットを起動します（開発: `npm start`）:
+5. アプリケーション ID を設定します:
+
+```
+DISCORD_APPLICATION_ID=your_application_id
+```
+
+6. スラッシュコマンドを登録します:
+
+```
+npm run register:commands
+```
+
+	グローバルのスラッシュコマンドは Discord に反映されるまで少し時間がかかることがあります。
+
+7. ボットを起動します（開発: `npm start`）:
 
 ```
 npm start
@@ -61,6 +76,7 @@ npm start
 
 - エントリポイント: [src/index.js](src/index.js)
 - 主なモジュール: [src/bot.js](src/bot.js), [src/lib/state.js](src/lib/state.js), [src/lib/utils.js](src/lib/utils.js)
+- スラッシュコマンド登録: [src/commands.js](src/commands.js), [src/register-commands.js](src/register-commands.js)
 - 依存: `discord.js`, `fs-extra`, `dotenv`
 
 ## 言語設定

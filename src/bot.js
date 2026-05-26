@@ -260,6 +260,286 @@ async function handleDescriptionCommand(message, rawDescription) {
 }
 
 /**
+ * @param {string} input
+ * @returns {{ guildId: string, channelId: string, messageId: string } | null}
+ */
+function parseDiscordMessageLink(input) {
+    const raw = String(input || "").trim();
+    const match = raw.match(/^https?:\/\/(?:canary\.|ptb\.)?discord(?:app)?\.com\/channels\/([0-9]{15,20}|@me)\/([0-9]{15,20})\/([0-9]{15,20})$/i);
+    if (!match) return null;
+
+    return {
+        guildId: match[1],
+        channelId: match[2],
+        messageId: match[3]
+    };
+}
+
+/**
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ */
+function createInteractionMessage(interaction) {
+    return {
+        guild: interaction.guild,
+        author: interaction.user,
+        client: interaction.client,
+        channel: interaction.channel,
+        reference: null,
+        async reply(payload) {
+            await interaction.editReply(payload);
+            return {
+                edit: async (nextPayload) => interaction.editReply(nextPayload)
+            };
+        }
+    };
+}
+
+/**
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ * @param {DiscordMessage} message
+ */
+async function handleSlashPublicCommand(interaction, message) {
+    const guild = interaction.guild;
+    if (!guild) return;
+
+    const rawValue = interaction.options.getString("message", true).trim();
+    const parsedLink = parseDiscordMessageLink(rawValue);
+    let messageId = rawValue;
+
+    if (parsedLink) {
+        if (parsedLink.guildId !== guild.id || parsedLink.channelId !== message.channel.id) {
+            await message.reply(t(getUserLocale(guild.id, message.author.id), "public_reply_not_found"));
+            return;
+        }
+
+        messageId = parsedLink.messageId;
+    }
+
+    const referenced = await message.channel.messages.fetch(messageId).catch((e) => { logger.error('handleSlashPublicCommand: fetch message', e); return null; });
+    if (!referenced || referenced.guild?.id !== guild.id) {
+        await message.reply(t(getUserLocale(guild.id, message.author.id), "public_reply_not_found"));
+        return;
+    }
+
+    const publicMessage = Object.assign({}, message, {
+        reference: { messageId },
+        fetchReference: async () => referenced
+    });
+
+    await publishReplyToPublicChannel(publicMessage);
+}
+
+/**
+ * @param {DiscordClient} client
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ */
+async function handleSlashInteraction(client, interaction) {
+    if (!interaction.isChatInputCommand() || interaction.commandName !== "twicord") return;
+
+    if (!interaction.inGuild() || !interaction.guild) {
+        await interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+        return;
+    }
+
+    await interaction.deferReply();
+    const message = createInteractionMessage(interaction);
+    const subcommand = interaction.options.getSubcommand();
+
+    try {
+        if (subcommand === "create") {
+            await createPrivateChannel(client, message);
+            return;
+        }
+
+        if (subcommand === "request") {
+            const targetUser = interaction.options.getUser("user", true);
+            await requestToJoin(message, targetUser.id);
+            return;
+        }
+
+        if (subcommand === "rename") {
+            const raw = interaction.options.getString("name", true);
+            const guild = message.guild;
+            if (!guild) return;
+
+            const guildState = getGuildState(guild.id);
+            const entry = getManagedChannelEntryByChannelId(guildState, message.channel.id);
+            if (!entry) {
+                const locale = getUserLocale(guild.id, message.author.id);
+                await message.reply(t(locale, "rename_not_in_managed_channel", { prefix: PREFIX }));
+                return;
+            }
+
+            const isOwner = message.author.id === entry.ownerId || message.author.id === guild.ownerId;
+            if (!isOwner) {
+                await message.reply(tUser(guild.id, message.author.id, "no_rename_permission"));
+                return;
+            }
+
+            if (!raw) {
+                await message.reply(tUser(guild.id, message.author.id, "usage_rename", { prefix: PREFIX }));
+                return;
+            }
+
+            const newName = utils.normalizeChannelName(raw);
+            const channel = await guild.channels.fetch(entry.channelId).catch((e) => { logger.error('rename: fetch channel', e); return null; });
+            if (!channel) {
+                await message.reply(tUser(guild.id, message.author.id, "target_channel_not_found_admin"));
+                return;
+            }
+
+            const interim = await message.reply(tUser(guild.id, message.author.id, "rename_in_progress")).catch((e) => { logger.error('rename: reply interim', e); return null; });
+
+            let setErr = null;
+            try {
+                await channel.setName(newName);
+            } catch (e) {
+                setErr = e;
+                logger.error('rename: setName', e);
+            }
+
+            const reason = setErr?.message || "unknown";
+
+            if (interim) {
+                try {
+                    if (!setErr) {
+                        await interim.edit(tUser(guild.id, message.author.id, "rename_success", { channel: `${channel}` }));
+                    } else {
+                        await interim.edit(tUser(guild.id, message.author.id, "rename_failed", { reason }));
+                    }
+                } catch (e) { logger.error('rename: edit interim', e); }
+            } else {
+                if (!setErr) {
+                    await message.reply(tUser(guild.id, message.author.id, "rename_success", { channel: `${channel}` }));
+                } else {
+                    await message.reply(tUser(guild.id, message.author.id, "rename_failed", { reason }));
+                }
+            }
+            return;
+        }
+
+        if (subcommand === "description") {
+            const rawDescription = interaction.options.getString("text", true);
+            await handleDescriptionCommand(message, rawDescription);
+            return;
+        }
+
+        if (subcommand === "list") {
+            const page = interaction.options.getInteger("page");
+            await listPrivateChannels(message, page != null ? String(page) : null);
+            return;
+        }
+
+        if (subcommand === "setcategory") {
+            const categoryId = utils.parseCategoryId(interaction.options.getString("category", true));
+            if (!categoryId) {
+                await message.reply(tUser(message.guild.id, message.author.id, "usage_set_category"));
+                return;
+            }
+
+            const category = message.guild.channels.cache.get(categoryId) || await message.guild.channels.fetch(categoryId).catch((e) => { logger.error('set-category: fetch category', e); return null; });
+            if (!category || category.type !== ChannelType.GuildCategory) {
+                await message.reply(tUser(message.guild.id, message.author.id, "category_not_found_owner_fix"));
+                return;
+            }
+
+            const guildState = getGuildState(message.guild.id);
+            guildState.defaultCategoryId = categoryId;
+            await saveState();
+            await updateActivity(client);
+            await message.reply(tUser(message.guild.id, message.author.id, "default_category_set", { category: `${category}` }));
+            return;
+        }
+
+        if (subcommand === "showcategory") {
+            const guildState = getGuildState(message.guild.id);
+            let categoryId = guildState.defaultCategoryId;
+            if (!categoryId) {
+                const fallback = message.guild.channels.cache.find((c) => c.type === ChannelType.GuildCategory);
+                if (fallback) categoryId = fallback.id;
+            }
+
+            const category = categoryId
+                ? message.guild.channels.cache.get(categoryId) || await message.guild.channels.fetch(categoryId).catch((e) => { logger.error('show-category: fetch category', e); return null; })
+                : null;
+
+            if (category) {
+                await message.reply(tUser(message.guild.id, message.author.id, "default_category_now", { category: `${category}` }));
+            } else if (categoryId) {
+                await message.reply(tUser(message.guild.id, message.author.id, "default_category_not_found", { categoryId }));
+            } else {
+                await message.reply(tUser(message.guild.id, message.author.id, "default_category_unset"));
+            }
+            return;
+        }
+
+        if (subcommand === "setpublicchannel") {
+            const rawArg = interaction.options.getString("channel");
+            const channelId = utils.parseChannelId(rawArg);
+            const targetChannel = channelId
+                ? message.guild.channels.cache.get(channelId) || await message.guild.channels.fetch(channelId).catch((e) => { logger.error('setpublicchannel: fetch channel', e); return null; })
+                : message.channel;
+
+            if (!targetChannel || !targetChannel.isTextBased() || typeof targetChannel.send !== "function") {
+                await message.reply(tUser(message.guild.id, message.author.id, "usage_set_public_channel"));
+                return;
+            }
+
+            const guildState = getGuildState(message.guild.id);
+            guildState.publicChannelId = targetChannel.id;
+            await saveState();
+
+            await message.reply(tUser(message.guild.id, message.author.id, "public_channel_set", { channel: `${targetChannel.name || targetChannel.id}` }));
+            return;
+        }
+
+        if (subcommand === "public") {
+            await handleSlashPublicCommand(interaction, message);
+            return;
+        }
+
+        if (subcommand === "archive") {
+            const targetUser = interaction.options.getUser("user");
+            await archivePrivateChannel(message, targetUser?.id || null);
+            return;
+        }
+
+        if (subcommand === "delete") {
+            const raw = interaction.options.getString("target", true);
+            const channelIdArg = utils.parseChannelId(raw);
+            const targetUserId = utils.parseUserId(raw);
+
+            if (channelIdArg) {
+                await deleteByChannelId(message, channelIdArg);
+                return;
+            }
+
+            if (targetUserId && message.author.id !== message.guild.ownerId) {
+                await message.reply(tUser(message.guild.id, message.author.id, "no_delete_permission"));
+                return;
+            }
+
+            await deletePrivateChannel(message, targetUserId || null);
+            return;
+        }
+
+        if (subcommand === "lang") {
+            const locale = interaction.options.getString("locale", true).toLowerCase();
+            await handleLanguageCommand(message, locale);
+            return;
+        }
+
+        if (subcommand === "help") {
+            const locale = getUserLocale(message.guild.id, message.author.id);
+            await message.reply({ embeds: [buildHelpEmbed(locale)] });
+        }
+    } catch (e) {
+        logger.error('handleSlashInteraction', e);
+        await interaction.editReply("Failed to execute the slash command.").catch(() => null);
+    }
+}
+
+/**
  * @param {DiscordClient} client
  */
 function attachHandlers(client) {
@@ -276,6 +556,10 @@ function attachHandlers(client) {
         } catch (e) { logger.error('updateManagedChannelsPermissions', e); }
         await updateActivity(client);
         setInterval(() => updateActivity(client).catch((e) => logger.error('updateActivity interval', e)), 60 * 1000);
+    });
+
+    client.on(Events.InteractionCreate, async (interaction) => {
+        await handleSlashInteraction(client, interaction).catch((e) => logger.error('handleSlashInteraction', e));
     });
 
     client.on(Events.MessageCreate, async (message) => {

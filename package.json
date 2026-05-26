@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node ./src/index.js",
+    "register:commands": "node ./src/register-commands.js",
     "pm2": "pm2 start ./src/index.js --name Twicord",
     "pm2-dev": "pm2 start ./src/index.js --name Twicord --watch"
   },
