@@ -915,6 +915,8 @@ async function requestToJoin(message, targetUserId) {
         return;
     }
 
+    target.requests ??= {};
+
     if (message.author.id === targetUserId) {
         await message.reply(tUser(guild.id, message.author.id, "cannot_request_own"));
         return;
@@ -926,8 +928,8 @@ async function requestToJoin(message, targetUserId) {
         return;
     }
 
-    const pending = Object.entries(target.requests ?? {}).find(([, request]) => request.requesterId === message.author.id && request.status === "pending");
-    if (pending) {
+    const existingRequest = Object.values(target.requests).find((request) => request?.requesterId === message.author.id && request.status !== "expired");
+    if (existingRequest) {
         await message.reply(tUser(guild.id, message.author.id, "already_requested"));
         return;
     }
